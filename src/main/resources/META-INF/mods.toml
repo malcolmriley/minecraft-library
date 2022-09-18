@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="Code: MIT, Textures: Public Domain"
+issueTrackerURL="https://github.com/malcolmriley/minecraft-TEMPLATE/issues"
+
+[[mods]]
+modId="TEMPLATE"
+version="${file.jarVersion}"
+displayName="TEMPLATE"
+logoFile="logo.png"
+credits="The_Paragon"
+authors="Malcolm Riley"
+description='''
+THIS IS A TEMPLATE DESCRIPTION
+'''
+
+[[dependencies.TEMPLATE]]
+    modId="forge"
+    mandatory=true
+    versionRange="[40.1,)"
+    ordering="NONE"
+    side="BOTH"
