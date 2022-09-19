@@ -4,7 +4,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
@@ -16,23 +15,13 @@ import paragon.minecraft.library.Utilities;
  * @author Malcolm Riley
  * @param <T> The {@link IForgeRegistryEntry} subtype
  */
-public abstract class ContentProvider<T extends IForgeRegistryEntry<T>> implements IEventBusListener {
+public abstract class ContentProvider<T extends IForgeRegistryEntry<T>> implements IEventBusListener.FML {
 
 	/* Internal Fields */
 	protected final DeferredRegister<T> ALL;
 
 	public ContentProvider(String modID) {
 		this.ALL = this.initializeRegistry(modID);
-	}
-
-	/**
-	 * Registers internal {@link DeferredRegister} with the passed {@link IEventBus}, so that the content
-	 * of this {@link ContentProvider} will be registered when the time comes.
-	 *
-	 * @param bus - The bus to register the {@link DeferredRegister} to.
-	 */
-	public void registerTo(IEventBus bus) {
-		this.ALL.register(bus);
 	}
 	
 	/**
