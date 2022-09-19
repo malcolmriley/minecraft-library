@@ -6,7 +6,7 @@ issueTrackerURL="https://github.com/malcolmriley/minecraft-library/issues"
 [[mods]]
 modId="paragon_library"
 version="${file.jarVersion}"
-displayName="Stash"
+displayName="The Paragon's Stash"
 logoFile="logo.png"
 credits="The_Paragon"
 authors="Malcolm Riley"
