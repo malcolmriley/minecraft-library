@@ -14,7 +14,7 @@ description='''
 Yes, you guessed it, it's yet another library mod. This time it's for The_Paragon's various mods.
 '''
 
-[[dependencies.TEMPLATE]]
+[[dependencies.paragon_library]]
     modId="forge"
     mandatory=true
     versionRange="[40.1,)"
