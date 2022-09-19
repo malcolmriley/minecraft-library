@@ -4,6 +4,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
@@ -92,6 +93,13 @@ public abstract class ContentProvider<T extends IForgeRegistryEntry<T>> implemen
 	 */
 	protected Stream<T> streamRegistered(Stream<RegistryObject<T>> input) {
 		return Utilities.Misc.streamPresent(this.ALL.getEntries());
+	}
+	
+	/* IEventBusListener Compliance Methods */
+
+	@Override
+	public void registerTo(IEventBus bus) {
+		this.ALL.register(bus);
 	}
 
 }
