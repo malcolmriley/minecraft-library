@@ -1,17 +1,17 @@
 modLoader="javafml"
 loaderVersion="[40,)"
-license="Code: MIT, Textures: Public Domain"
-issueTrackerURL="https://github.com/malcolmriley/minecraft-TEMPLATE/issues"
+license="MIT"
+issueTrackerURL="https://github.com/malcolmriley/minecraft-library/issues"
 
 [[mods]]
-modId="TEMPLATE"
+modId="paragon_library"
 version="${file.jarVersion}"
-displayName="TEMPLATE"
+displayName="Stash"
 logoFile="logo.png"
 credits="The_Paragon"
 authors="Malcolm Riley"
 description='''
-THIS IS A TEMPLATE DESCRIPTION
+Yes, you guessed it, it's yet another library mod. This time it's for The_Paragon's various mods.
 '''
 
 [[dependencies.TEMPLATE]]
