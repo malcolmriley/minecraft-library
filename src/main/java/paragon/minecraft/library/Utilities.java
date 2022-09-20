@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Stack;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -27,6 +28,7 @@ import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.Registry;
 import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
@@ -465,11 +467,7 @@ public final class Utilities {
 		 * @return The ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
 		 */
 		public static <T extends IForgeRegistryEntry<T>> @Nullable ResourceLocation getID(@Nullable final T instance, @Nonnull final IForgeRegistry<T> registry) {
-			if (Objects.isNull(instance)) {
-				return null;
-			}
-			final ResourceLocation heldName = instance.getRegistryName();
-			return Objects.nonNull(heldName) ? heldName : registry.getKey(instance);
+			return Game.getID(instance, registry, (reg, inst) -> reg.getKey(inst));
 		}
 
 		/**
@@ -483,6 +481,34 @@ public final class Utilities {
 		 * @return An {@link Optional} containing the ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
 		 */
 		public static <T extends IForgeRegistryEntry<T>> Optional<ResourceLocation> tryGetID(@Nonnull final T instance, @Nonnull final IForgeRegistry<T> registry) {
+			return Optional.ofNullable(Game.getID(instance, registry));
+		}
+		
+		/**
+		 * Utility method to get the {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return {@code null}.
+		 * <p>
+		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link Registry}. This may still fail.
+		 * 
+		 * @param <T> The {@link IForgeRegistryEntry} type
+		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
+		 * @param registry - The registry to use for a reverse lookup
+		 * @return The ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> @Nullable ResourceLocation getID(@Nullable final T instance, @Nonnull final Registry<T> registry) {
+			return Game.getID(instance, registry, (reg, inst) -> reg.getKey(inst));
+		}
+
+		/**
+		 * Utility method to get an {@link Optional} potentially containing {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return an empty {@link Optional}.
+		 * <p>
+		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link Registry}. This may still fail.
+		 * 
+		 * @param <T> The {@link IForgeRegistryEntry} type
+		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
+		 * @param registry - The registry to use for a reverse lookup
+		 * @return An {@link Optional} containing the ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Optional<ResourceLocation> tryGetID(@Nonnull final T instance, @Nonnull final Registry<T> registry) {
 			return Optional.ofNullable(Game.getID(instance, registry));
 		}
 		
@@ -938,6 +964,14 @@ public final class Utilities {
 
 		protected static double getOffset(Random RNG, double spread) {
 			return spread - (RNG.nextDouble() * 2.0D * spread);
+		}
+		
+		protected static <T extends IForgeRegistryEntry<T>, R> ResourceLocation getID(final T instance, R registry, BiFunction<R, T, ResourceLocation> lookupMethod) {
+			if (Objects.isNull(instance)) {
+				return null;
+			}
+			final ResourceLocation heldName = instance.getRegistryName();
+			return Objects.nonNull(heldName) ? heldName : lookupMethod.apply(registry, instance);
 		}
 
 	}
