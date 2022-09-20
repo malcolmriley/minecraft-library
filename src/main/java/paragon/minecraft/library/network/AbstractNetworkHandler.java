@@ -45,8 +45,8 @@ public abstract class AbstractNetworkHandler {
 	}
 	
 	protected AbstractNetworkHandler(final ResourceLocation name, final String version, boolean canConnectIfAbsent, boolean canConnectToVanilla) {
-		this.CHANNEL = Objects.requireNonNull(this.createChannel(name), AbstractNetworkHandler.EXCEPTION_NULL_CHANNEL);
 		this.PROTOCOL_VERSION = Require.notNullOrEmpty(version, AbstractNetworkHandler.EXCEPTION_NULL_VERSION);
+		this.CHANNEL = Objects.requireNonNull(this.createChannel(name), AbstractNetworkHandler.EXCEPTION_NULL_CHANNEL);
 		this.CAN_CONNECT_IF_MOD_ABSENT = canConnectIfAbsent;
 		this.CAN_CONNECT_TO_VANILLA = canConnectToVanilla;
 	}
@@ -54,7 +54,7 @@ public abstract class AbstractNetworkHandler {
 	/* Shared Methods */
 	
 	protected SimpleChannel createChannel(final ResourceLocation name) {
-		return NetworkRegistry.newSimpleChannel(name, () -> this.PROTOCOL_VERSION, this::canConnect, this::canConnect);
+		return NetworkRegistry.newSimpleChannel(name, this::getProtocolVersion, this::canConnect, this::canConnect);
 	}
 	
 	/* Public Methods */
@@ -106,6 +106,10 @@ public abstract class AbstractNetworkHandler {
 	
 	public void initialize() {
 		this.registerMessages(new MessageHelper(this.CHANNEL));
+	}
+	
+	public String getProtocolVersion() {
+		return this.PROTOCOL_VERSION;
 	}
 	
 	/* Internal Methods */
