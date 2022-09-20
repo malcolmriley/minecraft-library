@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
@@ -62,6 +63,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -451,6 +453,38 @@ public final class Utilities {
 	public static class Game {
 
 		private Game() {}
+		
+		/**
+		 * Utility method to get the {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return {@code null}.
+		 * <p>
+		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link IForgeRegistry}. This may still fail under certain circumstances.
+		 * 
+		 * @param <T> The {@link IForgeRegistryEntry} type
+		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
+		 * @param registry - The registry to use for a reverse lookup
+		 * @return The ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> @Nullable ResourceLocation getID(@Nullable final T instance, @Nonnull final IForgeRegistry<T> registry) {
+			if (Objects.isNull(instance)) {
+				return null;
+			}
+			final ResourceLocation heldName = instance.getRegistryName();
+			return Objects.nonNull(heldName) ? heldName : registry.getKey(instance);
+		}
+
+		/**
+		 * Utility method to get an {@link Optional} potentially containing {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return an empty {@link Optional}.
+		 * <p>
+		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link IForgeRegistry}. This may still fail under certain circumstances.
+		 * 
+		 * @param <T> The {@link IForgeRegistryEntry} type
+		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
+		 * @param registry - The registry to use for a reverse lookup
+		 * @return An {@link Optional} containing the ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Optional<ResourceLocation> tryGetID(@Nonnull final T instance, @Nonnull final IForgeRegistry<T> registry) {
+			return Optional.ofNullable(Game.getID(instance, registry));
+		}
 		
 		/**
 		 * Returns whether the provided {@link LivingEntity} has the effect contained within the provided {@link RegistryObject}.
