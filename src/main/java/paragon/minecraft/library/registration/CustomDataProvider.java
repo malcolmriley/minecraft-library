@@ -116,7 +116,13 @@ public class CustomDataProvider<T> extends SimpleJsonResourceReloadListener impl
 					})
 					.ifPresent(pair -> {
 						final T decoded = pair.getFirst();
-						this.add(location, decoded);
+						if (this.validate(location, decoded)) {
+							this.onAdd(location, decoded);
+							this.add(location, decoded);
+						}
+						else {
+							LogManager.getLogger().error("Loaded custom data object \"{}\" has failed validation, it will not be added.", location);
+						}
 					});
 			}
 		});
@@ -136,6 +142,29 @@ public class CustomDataProvider<T> extends SimpleJsonResourceReloadListener impl
 	 */
 	protected void clear() {
 		this.ENTRIES.clear();
+	}
+	
+	/**
+	 * Performs a final validation step on the decoded custom data. At this point, decoding has completed successfully.
+	 * <p>
+	 * If this method returns {@code false} for the provided instance, it will not be added.
+	 * 
+	 * @param location - The {@link ResourceLocation} the instance was decoded from
+	 * @param instance - The instance, successfully decoded.
+	 */
+	protected boolean validate(final ResourceLocation location, final T instance) {
+		return true;
+	}
+	
+	/**
+	 * Performs final processing on the provided instance given that it has decoded successfully and passed validation.
+	 * 
+	 * @param location - The {@link ResourceLocation} the instance was decoded from
+	 * @param instance - The instance, successfully decoded and validated.
+	 * @see #validate(ResourceLocation, Object)
+	 */
+	protected void onAdd(final ResourceLocation location, final T instance) {
+		
 	}
 	
 	/**
