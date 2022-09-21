@@ -2,6 +2,7 @@ package paragon.minecraft.library.client;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -14,12 +15,19 @@ import com.mojang.math.Matrix4f;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.item.ItemColor;
+import net.minecraft.client.color.item.ItemColors;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Item;
+import net.minecraftforge.client.MinecraftForgeClient;
+import net.minecraftforge.registries.RegistryObject;
 import paragon.minecraft.library.Utilities;
 
 /**
@@ -30,17 +38,17 @@ import paragon.minecraft.library.Utilities;
 public class ClientUtilities {
 
 	private ClientUtilities() {}
-	
+
 	/**
 	 * Container class for renderable text component utility methods.
-	 * 
+	 *
 	 * @author Malcolm Riley
 	 */
 	public static class Text {
-		
+
 		/**
 		 * Attempts to localize and format the provided {@link String} with the provided {@link Style}.
-		 * 
+		 *
 		 * @param key - The lang key to localize
 		 * @param style - The {@link Style} to use
 		 * @return A suitably localized and formatted {@link FormattedText}.
@@ -48,23 +56,35 @@ public class ClientUtilities {
 		public static FormattedText localize(@Nonnull String key, Style style) {
 			return FormattedText.of(Text.translate(key), style);
 		}
-		
+
 		/**
 		 * Attempts to localize and format the provided {@link String}.
-		 * 
+		 *
 		 * @param key - The lang key to localize
 		 * @return A suitably localized and formatted {@link FormattedText}.
 		 */
 		public static FormattedText localize(@Nonnull String key) {
 			return FormattedText.of(Text.translate(key));
 		}
-		
+
+		/**
+		 * Wrapper method that simply delegates to {@link MinecraftForgeClient#registerTooltipComponentFactory(Class, Function)}.
+		 * <p>
+		 * 
+		 * @param <T> The {@link TooltipComponent} type
+		 * @param tooltipClass - The class of the tooltip component
+		 * @param factory - A factory for generating client components from the {@link TooltipComponent} type.
+		 */
+		public static <T extends TooltipComponent> void registerTooltipFactory(Class<T> tooltipClass, Function<? super T, ? extends ClientTooltipComponent> factory) {
+			MinecraftForgeClient.registerTooltipComponentFactory(tooltipClass, factory);
+		}
+
 		/* Internal Methods */
-		
+
 		protected static String translate(String key) {
 			return Language.getInstance().getOrDefault(key);
 		}
-		
+
 	}
 
 	/**
@@ -85,12 +105,12 @@ public class ClientUtilities {
 		public static float unpackRed(final int packedColor) {
 			return Colors.unpackWithShift(packedColor, 16); // Beginning: 0xFF0000
 		}
-		
+
 		/**
 		 * Returns the value of the provided component as the red channel in a packed color integer.
 		 * <p>
 		 * The other channels are assumed to have a value of {@literal 0}.
-		 * 
+		 *
 		 * @param value - The 0 - 1 value of the desired red channel
 		 * @return A packed integer color with the red channel set to the desired value.
 		 */
@@ -112,7 +132,7 @@ public class ClientUtilities {
 		 * Returns the value of the provided component as the green channel in a packed color integer.
 		 * <p>
 		 * The other channels are assumed to have a value of {@literal 0}.
-		 * 
+		 *
 		 * @param value - The 0 - 1 value of the desired green channel
 		 * @return A packed integer color with the green channel set to the desired value.
 		 */
@@ -134,17 +154,17 @@ public class ClientUtilities {
 		 * Returns the value of the provided component as the blue channel in a packed color integer.
 		 * <p>
 		 * The other channels are assumed to have a value of {@literal 0}.
-		 * 
+		 *
 		 * @param value - The 0 - 1 value of the desired blue channel
 		 * @return A packed integer color with the blue channel set to the desired value.
 		 */
 		public static int packBlue(final float value) {
 			return Colors.packWithShift(value, 0); // To end: 0x0000FF
 		}
-		
+
 		/**
 		 * Returns a packed-color representation of the provided channel values.
-		 * 
+		 *
 		 * @param red - The 0 - 1 value of the red channel
 		 * @param green - The 0 - 1 value of the green channel
 		 * @param blue - The 0 - 1 value of the blue channel
@@ -154,8 +174,21 @@ public class ClientUtilities {
 			return Colors.packRed(red) & Colors.packGreen(green) & Colors.packBlue(blue);
 		}
 
+		/**
+		 * Registers the provided {@link ItemColor} color handler to the provided {@link ItemColors} registry, if and only if the provided {@link RegistryObject} is not empty.
+		 *
+		 * @param registry - The item color registry
+		 * @param reference - The {@link RegistryObject} holding the target item
+		 * @param colorHandler - The {@link ItemColor} color handler.
+		 */
+		public static void registerColorHandler(@Nonnull final ItemColors registry, @Nonnull final RegistryObject<Item> reference, @Nonnull final ItemColor colorHandler) {
+			if (reference.isPresent()) {
+				registry.register(colorHandler, reference.get());
+			}
+		}
+
 		/* Internal Methods */
-		
+
 		protected static int packWithShift(final float channel, int shift) {
 			return (Mth.floor(255.0F * channel) & 0xFF) << shift;
 		}
@@ -172,28 +205,28 @@ public class ClientUtilities {
 	 * @author MalcolmRiley
 	 */
 	public static class Render {
-		
+
 		/**
 		 * Utility to obtain the frame delta time from the {@link Minecraft} instance.
-		 * 
+		 *
 		 * @return The current frame delta time.
 		 */
 		public static float getDeltaTime() {
 			return Minecraft.getInstance().getDeltaFrameTime();
 		}
-		
+
 		/**
 		 * Utility method to fetch the current time in nanoseconds.
-		 * 
+		 *
 		 * @return The current time.
 		 */
 		public static long getNanoTime() {
 			return Util.getNanos();
 		}
-		
+
 		/**
 		 * Utility method to fetch the current time in milliseconds.
-		 * 
+		 *
 		 * @return The current time.
 		 */
 		public static long getMilliTime() {
@@ -233,11 +266,12 @@ public class ClientUtilities {
 		public static void setShaderColor(final int packedColor, final float alpha) {
 			RenderSystem.setShaderColor(Colors.unpackRed(packedColor), Colors.unpackGreen(packedColor), Colors.unpackBlue(packedColor), alpha);
 		}
-		
+
 		/**
 		 * Draws a "ninepatch" of quads to the provided {@link BufferBuilder} using the provided parameters, and assuming some convenient default parameters.
-		 * This is a convenience method that calls {@link #drawNinepatch(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float, float)} with a {@code patchSize} of 8, a {@code patchPadding} of 1, and a {@code textureSize} of 256.
-		 * 
+		 * This is a convenience method that calls {@link #drawNinepatch(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float, float)} with a {@code patchSize} of 8, a {@code patchPadding} of 1, and a
+		 * {@code textureSize} of 256.
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -252,16 +286,16 @@ public class ClientUtilities {
 		public static void drawNinepatch(final BufferBuilder buffer, final Matrix4f matrix, final float z, final float xPos, final float yPos, final float width, final float height, final float minU, final float minV) {
 			Render.drawNinepatch(buffer, matrix, z, xPos, yPos, width, height, minU, minV, 8, 1, 256);
 		}
-		
+
 		/**
 		 * Draws a "ninepatch" of quads to the provided {@link BufferBuilder} using the provided parameters.
 		 * <p>
 		 * This method assumes a 3x3 source grid for the ninepatch with the same relative positionings of each component.
 		 * <p>
 		 * <b>Important:</b> This is a convenience method that calls {@link #drawQuadDirect(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)} after
-		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever. 
+		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever.
 		 * It does not set any {@link RenderSystem} state, nor does it begin or end the buffer build process.
-		 * 
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -280,32 +314,32 @@ public class ClientUtilities {
 			final float patchOffset = patchSize + patchPadding;
 			final float doublePatchSize = 2.0F * patchSize;
 			final float doublePatchOffset = 2.0F * patchOffset;
-			
+
 			final float midWidth = width - doublePatchSize; // Width of middle minus two corners
 			final float midHeight = height - doublePatchSize; // Width of middle minus two corners
-			
+
 			final float midX = xPos + patchSize; // X of middle patches
 			final float maxX = midX + midWidth; // X of rightmost patches
-			
+
 			final float midY = yPos + patchSize; // Y of middle patches
 			final float maxY = midY + midHeight; // Y of bottom-most patches
-			
+
 			final float midU = minU + patchOffset; // U of middle patches
 			final float maxU = minU + doublePatchOffset; // U of rightmost patches
-			
+
 			final float midV = minV + patchOffset; // V of middle patches
 			final float maxV = minV + doublePatchOffset; // V of bottom-most patches
-			
+
 			// Always draw corners
 			ClientUtilities.Render.drawQuad(buffer, matrix, z, xPos, yPos, patchSize, patchSize, minU, minV, patchSize, patchSize, textureSize, textureSize); // Upper-Left
 			ClientUtilities.Render.drawQuad(buffer, matrix, z, maxX, yPos, patchSize, patchSize, maxU, minV, patchSize, patchSize, textureSize, textureSize); // Upper-Right
 			ClientUtilities.Render.drawQuad(buffer, matrix, z, xPos, maxY, patchSize, patchSize, minU, maxV, patchSize, patchSize, textureSize, textureSize); // Bottom-Left
 			ClientUtilities.Render.drawQuad(buffer, matrix, z, maxX, maxY, patchSize, patchSize, maxU, maxV, patchSize, patchSize, textureSize, textureSize); // Bottom-Right
-			
+
 			// Conditional upon dimensions
 			final boolean positiveWidth = midWidth > 0;
 			final boolean positiveHeight = midHeight > 0;
-			
+
 			if (positiveWidth) {
 				ClientUtilities.Render.drawQuad(buffer, matrix, z, midX, yPos, midWidth, patchSize, midU, minV, patchSize, patchSize, textureSize, textureSize); // Upper-Mid
 				ClientUtilities.Render.drawQuad(buffer, matrix, z, midX, maxY, midWidth, patchSize, midU, maxV, patchSize, patchSize, textureSize, textureSize); // Bottom-Mid
@@ -317,16 +351,16 @@ public class ClientUtilities {
 			if (positiveWidth && positiveHeight) {
 				ClientUtilities.Render.drawQuad(buffer, matrix, z, midX, midY, midWidth, midHeight, midU, midV, patchSize, patchSize, textureSize, textureSize); // Mid-Mid
 			}
-			
+
 		}
-		
+
 		/**
 		 * Draws a quad into the provided {@link BufferBuilder} using the provided parameters and assuming a source texture size of 256x256 (standard for UI textures).
 		 * <p>
 		 * <b>Important:</b> This is a convenience method that calls {@link #drawQuadDirect(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)} after
-		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever. 
+		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever.
 		 * It does not set any {@link RenderSystem} state, nor does it begin or end the buffer build process.
-		 * 
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -341,16 +375,17 @@ public class ClientUtilities {
 		public static void drawQuad(@Nonnull final BufferBuilder buffer, @Nonnull final Matrix4f matrix, final float z, final float xPos, final float yPos, final float width, final float height, final float uPos, final float vPos) {
 			Render.drawQuad(buffer, matrix, z, xPos, yPos, width, height, uPos, vPos, 256.0F, 256.0F);
 		}
-		
+
 		/**
 		 * Draws a quad into the provided {@link BufferBuilder} using the provided parameters.
 		 * <p>
 		 * <b>Important:</b> This is a convenience method that calls {@link #drawQuadDirect(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)} after
-		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever. 
+		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever.
 		 * It does not set any {@link RenderSystem} state, nor does it begin or end the buffer build process.
 		 * <p>
-		 * This method assumes that the texel draw dimensions match the source UV texel dimensions. For a variation that does not, see {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float, float, float)}.
-		 * 
+		 * This method assumes that the texel draw dimensions match the source UV texel dimensions. For a variation that does not, see
+		 * {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float, float, float)}.
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -368,16 +403,17 @@ public class ClientUtilities {
 		public static void drawQuad(@Nonnull final BufferBuilder buffer, @Nonnull final Matrix4f matrix, final float z, final float xPos, final float yPos, final float width, final float height, final float uPos, final float vPos, final float textureWidth, final float textureHeight) {
 			Render.drawQuad(buffer, matrix, z, xPos, yPos, width, height, uPos, vPos, width, height, textureWidth, textureHeight);
 		}
-		
+
 		/**
 		 * Draws a quad into the provided {@link BufferBuilder} using the provided parameters.
 		 * <p>
 		 * <b>Important:</b> This is a convenience method that calls {@link #drawQuadDirect(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)} after
-		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever. 
+		 * performing some minor calculations using the provided parameters. This method does not perform any kind of setup or cleanup whatsoever.
 		 * It does not set any {@link RenderSystem} state, nor does it begin or end the buffer build process.
 		 * <p>
-		 * This method assumes different texel dimensions for the desired quad than the source texture UV. For a version that does not, see {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)}.
-		 * 
+		 * This method assumes different texel dimensions for the desired quad than the source texture UV. For a version that does not, see
+		 * {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)}.
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -397,7 +433,7 @@ public class ClientUtilities {
 		public static void drawQuad(@Nonnull final BufferBuilder buffer, @Nonnull final Matrix4f matrix, final float z, final float xPos, final float yPos, final float width, final float height, final float uPos, final float vPos, final float uvWidth, final float uvHeight, final float textureWidth, final float textureHeight) {
 			Render.drawQuadDirect(buffer, matrix, z, xPos, xPos + width, yPos, yPos + height, uPos / textureWidth, (uPos + uvWidth) / textureWidth, vPos / textureHeight, (vPos + uvHeight) / textureHeight);
 		}
-		
+
 		/**
 		 * Directly draws a quad into the provided {@link BufferBuilder} using the provided parameters.
 		 * <p>
@@ -405,13 +441,13 @@ public class ClientUtilities {
 		 * This method does not perform any kind of setup or cleanup whatsoever. It does not set any {@link RenderSystem} state, nor does it begin or end the buffer build process.
 		 * <p>
 		 * Notes:
-		 * <li> The X and Y coordinate parameters will form the on-screen positions of the four vertices of the quad. </li>
-		 * <li> The U and V coordinate parameters are the texture coordinates in the input texture and should be a value from 0 to 1. </li>
-		 * <li> To obtain reasonable U and V coordinates from known pixel coordinates in the input image, just divide the desired start or end pixel by the total pixel width of the image. </li>
+		 * <li>The X and Y coordinate parameters will form the on-screen positions of the four vertices of the quad.</li>
+		 * <li>The U and V coordinate parameters are the texture coordinates in the input texture and should be a value from 0 to 1.</li>
+		 * <li>To obtain reasonable U and V coordinates from known pixel coordinates in the input image, just divide the desired start or end pixel by the total pixel width of the image.</li>
 		 * <p>
 		 * For less granular methods that perform some of the above reccommended calculations, see {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float)} and
 		 * {@link #drawQuad(BufferBuilder, Matrix4f, float, float, float, float, float, float, float, float, float)}.
-		 * 
+		 *
 		 * @param buffer - The {@link BufferBuilder} to use
 		 * @param matrix - The {@link Matrix4f} to use for view transforms
 		 * @param z - The Z depth of the quad to draw, in {@link Screen} derivatives this is typically {@link Screen#getBlitOffset()}.
@@ -487,43 +523,43 @@ public class ClientUtilities {
 		public static <T extends Screen> Optional<T> tryOpenClientOnlyUI(final Supplier<T> initializer, Consumer<T> transformer) {
 			return Optional.ofNullable(UI.openClientOnlyUI(initializer, transformer));
 		}
-		
+
 		/**
 		 * Returns the total UI-scaled client window width assuming the provided margin on both sides.
-		 * 
+		 *
 		 * @param margin - The margin to apply to both sides
 		 * @return The UI-scaled width, minus double the provided margin.
 		 */
 		public static int getWindowWidthWithMargin(final int margin) {
 			return UI.getSizeWithMargin(UI.getWindow().getGuiScaledWidth(), margin);
 		}
-		
+
 		/**
 		 * Returns the total UI-scaled client window height assuming the provided margin on both sides.
-		 * 
+		 *
 		 * @param margin - The margin to apply to both sides
 		 * @return The UI-scaled height, minus double the provided margin.
 		 */
 		public static int getWindowHeightWithMargin(final int margin) {
 			return UI.getSizeWithMargin(UI.getWindow().getGuiScaledHeight(), margin);
 		}
-		
+
 		/**
 		 * Shortcut for accessing the minecraft client {@link Window} object.
 		 * <p>
 		 * Route calls to this method in case things change.
-		 * 
+		 *
 		 * @return The {@link Window} instance.
 		 */
 		public static Window getWindow() {
 			return Minecraft.getInstance().getWindow();
 		}
-		
+
 		/**
 		 * Simple convenience method to reduce the original value by double the margin value.
 		 * <p>
 		 * Good for calculating the dimensions of an inset UI element.
-		 * 
+		 *
 		 * @param original - The original value
 		 * @param margin - The value of the margin
 		 * @return The original value minus double the margin.
@@ -531,11 +567,12 @@ public class ClientUtilities {
 		public static int getSizeWithMargin(final int original, final int margin) {
 			return original - (2 * margin);
 		}
-		
+
 		/**
 		 * Simple convenience method that returns half of the difference between the first and second parameters.
 		 * <p>
 		 * Good for calculating the top-left coordinate of an inner element so as to be placed within the outer element.
+		 *
 		 * @param outerwidth - The width of the outer element
 		 * @param innerwidth - The width of the inner element
 		 * @return The top-left coordinate of the inner element.
@@ -543,7 +580,7 @@ public class ClientUtilities {
 		public static int getCenteredWithin(final int outerwidth, final int innerwidth) {
 			return (outerwidth - innerwidth) / 2;
 		}
-		
+
 		/**
 		 * Method to close the active screens.
 		 */
