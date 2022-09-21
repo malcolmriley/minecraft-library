@@ -79,6 +79,27 @@ public class ClientUtilities {
 			MinecraftForgeClient.registerTooltipComponentFactory(tooltipClass, factory);
 		}
 
+		/**
+		 * Returns the line height of the default font.
+		 * 
+		 * @param padding - The padding value to add.
+		 * @return The line height of the default font.
+		 */
+		public static int getDefaultTextLineHeight() {
+			return Text.getDefaultTextLineHeight(0);
+		}
+		
+		/**
+		 * Returns the line height of the default font plus a padding value.
+		 * 
+		 * @param padding - The padding value to add.
+		 * @return The line height of the default font. plus padding.
+		 */
+		@SuppressWarnings("resource") // Minecraft.getInstance()
+		public static int getDefaultTextLineHeight(final int padding) {
+			return Minecraft.getInstance().font.lineHeight + padding;
+		}
+
 		/* Internal Methods */
 
 		protected static String translate(String key) {
