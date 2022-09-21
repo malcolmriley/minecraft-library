@@ -2,9 +2,11 @@ package paragon.minecraft.library.datageneration;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import net.minecraft.advancements.critereon.InventoryChangeTrigger;
 import net.minecraft.advancements.critereon.InventoryChangeTrigger.TriggerInstance;
+import net.minecraft.advancements.critereon.ItemPredicate;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeProvider;
@@ -37,6 +39,33 @@ public abstract class RecipeHelper extends RecipeProvider {
 	public abstract void buildCraftingRecipes(final Consumer<FinishedRecipe> registrar);
 
 	/* Utility Methods */
+	
+	/**
+	 * Convenience method to create a {@link TriggerInstance} that requires the player to have all of the provided {@link ItemLike} in their inventory at once.
+	 * <p>
+	 * For a similar method that requires the player to have at least one {@link ItemLike} from a list of such, see {@link #hasAny(ItemLike...)}.
+	 * 
+	 * @param ingredients - The items required
+	 * @return A suitable {@link TriggerInstance}.
+	 * @see #hasAny(ItemLike...)
+	 */
+	protected static TriggerInstance hasAll(ItemLike ... ingredients) {
+		final ItemPredicate[] predicates = Stream.of(ingredients).map(item -> ItemPredicate.Builder.item().of(item).build()).toArray(ItemPredicate[]::new);
+		return RecipeHelper.inventoryTrigger(predicates);
+	}
+	
+	/**
+	 * Convenience method to create a {@link TriggerInstance} that requires the player to have at least one of the provided {@link ItemLike} in their inventory at once.
+	 * <p>
+	 * For a similar method that requires the player to have all {@link ItemLike} in a list of such, see {@link #hasAll(ItemLike...)}.
+	 * 
+	 * @param ingredients - The items required
+	 * @return A suitable {@link TriggerInstance}.
+	 * @see #hasAll(ItemLike...)
+	 */
+	protected static TriggerInstance hasAny(ItemLike ... ingredients) {
+		return RecipeHelper.inventoryTrigger(ItemPredicate.Builder.item().of(ingredients).build());
+	}
 
 	/**
 	 * Convenience method to create an {@link InventoryChangeTrigger.Instance} for the possesion of the {@link Item} contained in the provided {@link RegistryObject}.
