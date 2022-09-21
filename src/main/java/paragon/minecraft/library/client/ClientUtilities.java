@@ -302,11 +302,12 @@ public class ClientUtilities {
 		 * @param texture - The {@link ResourceLocation} of the texture to draw
 		 * @param xPos - The UI-space X coordinate to draw at
 		 * @param yPos - The UI-space Y coordinate to draw at
+		 * @param z - The blit offset
 		 * @param width - The UI-space texel width of the quad to draw
 		 * @param dimensions - The UI-space texel width and height of the quad to draw
 		 */
-		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int dimensions) {
-			Render.drawGuiQuad(pose, texture, xPos, yPos, dimensions, dimensions);
+		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int z, final int dimensions) {
+			Render.drawGuiQuad(pose, texture, xPos, yPos, z, dimensions, dimensions);
 		}
 		
 		/**
@@ -320,11 +321,12 @@ public class ClientUtilities {
 		 * @param texture - The {@link ResourceLocation} of the texture to draw
 		 * @param xPos - The UI-space X coordinate to draw at
 		 * @param yPos - The UI-space Y coordinate to draw at
+		 * @param z - The blit offset
 		 * @param width - The UI-space texel width of the quad to draw
 		 * @param height - The UI-space texel height of the quad to draw
 		 */
-		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int width, final int height) {
-			Render.drawGuiQuad(0, texture, pose, xPos, yPos, 0, 0, 0, width, height, width, height);
+		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int z, final int width, final int height) {
+			Render.drawGuiQuad(0, texture, pose, xPos, yPos, z, 0, 0, width, height, width, height);
 		}
 		
 		/**
