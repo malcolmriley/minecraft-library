@@ -11,18 +11,21 @@ import javax.annotation.Nullable;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Matrix4f;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.item.ItemColor;
 import net.minecraft.client.color.item.ItemColors;
+import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
@@ -286,6 +289,67 @@ public class ClientUtilities {
 		 */
 		public static void setShaderColor(final int packedColor, final float alpha) {
 			RenderSystem.setShaderColor(Colors.unpackRed(packedColor), Colors.unpackGreen(packedColor), Colors.unpackBlue(packedColor), alpha);
+		}
+		
+		/**
+		 * Draws a textured quad using access through {@link GuiComponent}. Assumes a square standalone texture with min UV coordinates of (0,0) and the provided dimensions as width and height.
+		 * <p>
+		 * Calls {@link Render#drawGuiQuad(PoseStack, ResourceLocation, int, int, int, int)} with the aforementioned default values.
+		 * <p>
+		 * <b> Important! </b> This method does not perform any render setup or cleanup such as setting the render color or setting the shader. Ensure that this is done before calling this method.
+		 * 
+		 * @param pose - The {@link PoseStack} to use for transforms
+		 * @param texture - The {@link ResourceLocation} of the texture to draw
+		 * @param xPos - The UI-space X coordinate to draw at
+		 * @param yPos - The UI-space Y coordinate to draw at
+		 * @param width - The UI-space texel width of the quad to draw
+		 * @param dimensions - The UI-space texel width and height of the quad to draw
+		 */
+		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int dimensions) {
+			Render.drawGuiQuad(pose, texture, xPos, yPos, dimensions, dimensions);
+		}
+		
+		/**
+		 * Draws a textured quad using access through {@link GuiComponent}. Assumes a standalone texture with min UV coordinates of (0,0) and the provided width and height.
+		 * <p>
+		 * Calls {@link Render#drawGuiQuad(int, ResourceLocation, PoseStack, int, int, int, float, float, int, int, int, int)} with the aforementioned default parameters.
+		 * <p>
+		 * <b> Important! </b> This method does not perform any render setup or cleanup such as setting the render color or setting the shader. Ensure that this is done before calling this method.
+		 * 
+		 * @param pose - The {@link PoseStack} to use for transforms
+		 * @param texture - The {@link ResourceLocation} of the texture to draw
+		 * @param xPos - The UI-space X coordinate to draw at
+		 * @param yPos - The UI-space Y coordinate to draw at
+		 * @param width - The UI-space texel width of the quad to draw
+		 * @param height - The UI-space texel height of the quad to draw
+		 */
+		public static void drawGuiQuad(@Nonnull final PoseStack pose, @Nonnull final ResourceLocation texture, final int xPos, final int yPos, final int width, final int height) {
+			Render.drawGuiQuad(0, texture, pose, xPos, yPos, 0, 0, 0, width, height, width, height);
+		}
+		
+		/**
+		 * Draws a textured quad using access through {@link GuiComponent}.
+		 * <p>
+		 * This method merely delegates to {@link GuiComponent#blit(PoseStack, int, int, int, float, float, int, int, int, int)} after setting {@link RenderSystem#setShaderTexture(int, ResourceLocation)}.
+		 * <p>
+		 * <b> Important! </b> This method does not perform any render setup or cleanup such as setting the render color or setting the shader. Ensure that this is done before calling this method.
+		 * 
+		 * @param textureIndex - The texture index of the texture to draw
+		 * @param texture - The {@link ResourceLocation} of the texture to draw
+		 * @param pose - The {@link PoseStack} to use for transforms
+		 * @param xPos - The UI-space X coordinate to draw at
+		 * @param yPos - The UI-space Y coordinate to draw at
+		 * @param z - The blit offset
+		 * @param minU - The texture-space minimum U coordinate to sample from
+		 * @param minV - The texture-space minimum V coordinate to sample from
+		 * @param width - The UI-space texel width of the quad to draw
+		 * @param height - The UI-space texel height of the quad to draw
+		 * @param maxU - The UI-space maximum U offset to sample from
+		 * @param maxV - The UI-space maximum V offset to sample from
+		 */
+		public static void drawGuiQuad(final int textureIndex, @Nonnull final ResourceLocation texture, @Nonnull final PoseStack pose, final int xPos, final int yPos, final int z, final float minU, final float minV, final int width, final int height, final int maxU, final int maxV) {
+			RenderSystem.setShaderTexture(textureIndex, texture);
+			GuiComponent.blit(pose, xPos, yPos, z, minU, minV, maxU, maxV, width, height);
 		}
 
 		/**
