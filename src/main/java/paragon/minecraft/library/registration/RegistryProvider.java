@@ -4,11 +4,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -105,6 +107,58 @@ public abstract class RegistryProvider<T extends IForgeRegistryEntry<T>> impleme
 	public Optional<T> tryGet(@Nonnull final ResourceLocation id, @Nonnull final Level level) {
 		final Optional<? extends Registry<T>> registry = this.tryGetRegistry(level);
 		return registry.isPresent() ? registry.get().getOptional(id) : Optional.empty();
+	}
+	
+	/**
+	 * Returns an {@link Optional} potentially containing the {@link ResourceLocation} ID of the provided instance, first by attempting {@link IForgeRegistryEntry#getRegistryName()} and then by querying the level registry by reverse lookup.
+	 * <p>
+	 * This is necessary because datapack driven registries do not set the registry name of the instances they contain.
+	 * 
+	 * @param level - The {@link Level} whose registry is used for lookup as a fallback
+	 * @param instance - The instance to query
+	 * @return An {@link Optional} containing the {@link ResourceLocation} ID of that instance.
+	 */
+	public Optional<ResourceLocation> tryGetID(@Nullable final T instance, @Nonnull final Level level) {
+		return Optional.ofNullable(this.getID(instance, level));
+	}
+	
+	/**
+	 * Returns the {@link ResourceLocation} ID of the provided instance, first by attempting {@link IForgeRegistryEntry#getRegistryName()} and then by querying the level registry by reverse lookup.
+	 * <p>
+	 * This is necessary because datapack driven registries do not set the registry name of the instances they contain.
+	 * 
+	 * @param level - The {@link Level} whose registry is used for lookup as a fallback
+	 * @param instance - The instance to query
+	 * @return The {@link ResourceLocation} ID of that instance.
+	 */
+	public ResourceLocation getID(@Nullable final T instance, @Nonnull final Level level) {
+		return Objects.nonNull(instance.getRegistryName()) ? instance.getRegistryName() : this.getRegistryOrThrow(level).getKey(instance);
+	}
+	
+	/**
+	 * Returns an {@link Optional} potentially containing the {@link ResourceLocation} ID of the provided instance, first by attempting {@link IForgeRegistryEntry#getRegistryName()} and then by querying the level registry by reverse lookup.
+	 * <p>
+	 * This is necessary because datapack driven registries do not set the registry name of the instances they contain.
+	 * 
+	 * @param level - The {@link Player} whose level registry is used for lookup as a fallback
+	 * @param instance - The instance to query
+	 * @return An {@link Optional} containing the {@link ResourceLocation} ID of that instance.
+	 */
+	public Optional<ResourceLocation> tryGetID(@Nullable final T instance, @Nonnull final Player player) {
+		return this.tryGetID(instance, player.getLevel());
+	}
+	
+	/**
+	 * Returns the {@link ResourceLocation} ID of the provided instance, first by attempting {@link IForgeRegistryEntry#getRegistryName()} and then by querying the level registry by reverse lookup.
+	 * <p>
+	 * This is necessary because datapack driven registries do not set the registry name of the instances they contain.
+	 * 
+	 * @param level - The {@link Player} whose level registry is used for lookup as a fallback
+	 * @param instance - The instance to query
+	 * @return The {@link ResourceLocation} ID of that instance.
+	 */
+	public ResourceLocation getID(@Nullable final T instance, @Nonnull final Player player) {
+		return this.getID(instance, player.getLevel());
 	}
 	
 	/* IEventBusListener Compliance Methods */
