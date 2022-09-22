@@ -49,7 +49,7 @@ public abstract class RecipeHelper extends RecipeProvider {
 	 * @return A suitable {@link TriggerInstance}.
 	 * @see #hasAny(ItemLike...)
 	 */
-	protected static TriggerInstance hasAll(ItemLike ... ingredients) {
+	protected static TriggerInstance hasAllItems(ItemLike ... ingredients) {
 		final ItemPredicate[] predicates = Stream.of(ingredients).map(item -> ItemPredicate.Builder.item().of(item).build()).toArray(ItemPredicate[]::new);
 		return RecipeHelper.inventoryTrigger(predicates);
 	}
@@ -57,11 +57,11 @@ public abstract class RecipeHelper extends RecipeProvider {
 	/**
 	 * Convenience method to create a {@link TriggerInstance} that requires the player to have at least one of the provided {@link ItemLike} in their inventory at once.
 	 * <p>
-	 * For a similar method that requires the player to have all {@link ItemLike} in a list of such, see {@link #hasAll(ItemLike...)}.
+	 * For a similar method that requires the player to have all {@link ItemLike} in a list of such, see {@link #hasAllItems(ItemLike...)}.
 	 * 
 	 * @param ingredients - The items required
 	 * @return A suitable {@link TriggerInstance}.
-	 * @see #hasAll(ItemLike...)
+	 * @see #hasAllItems(ItemLike...)
 	 */
 	protected static TriggerInstance hasAny(ItemLike ... ingredients) {
 		return RecipeHelper.inventoryTrigger(ItemPredicate.Builder.item().of(ingredients).build());
