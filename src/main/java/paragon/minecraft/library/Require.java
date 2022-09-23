@@ -87,6 +87,8 @@ public final class Require {
 	
 	/**
 	 * Throws an exception if the provided value is not positive; that is to say, if it is less than or equal to zero.
+	 * <p>
+	 * If the provided value is {@code null}, throws an exception.
 	 * 
 	 * @param <V> The type of value to test
 	 * @param value - The value to test
@@ -94,10 +96,12 @@ public final class Require {
 	 * @return The provided value.
 	 */
 	public static <V extends Comparable<Number>> V positive(V value, String message) {
-		return Require.throwIfNot(value, Require.positive(value, 0), message);
+		return Require.throwIfNot(value, Require.isPositive(value, 0), message);
 	}
 	/**
 	 * Throws an exception if the provided value is not non-positive; that is to say, if it is less zero but not if it is equal to zero.
+	 * <p>
+	 * If the provided value is {@code null}, throws an exception.
 	 * 
 	 * @param <V> The type of value to test
 	 * @param value - The value to test
@@ -105,11 +109,13 @@ public final class Require {
 	 * @return The provided value.
 	 */
 	public static <V extends Comparable<Number>> V nonPositive(V value, String message) {
-		return Require.throwIfNot(value, Require.nonPositive(value, 0), message);
+		return Require.throwIfNot(value, Require.isNonPositive(value, 0), message);
 	}
 	
 	/**
 	 * Throws an exception if the provided value is not negative; that is to say, if it is greater than or equal to zero.
+	 * <p>
+	 * If the provided value is {@code null}, throws an exception.
 	 * 
 	 * @param <V> The type of value to test
 	 * @param value - The value to test
@@ -117,11 +123,13 @@ public final class Require {
 	 * @return The provided value.
 	 */
 	public static <V extends Comparable<Number>> V negative(V value, String message) {
-		return Require.throwIfNot(value, Require.negative(value, 0), message);
+		return Require.throwIfNot(value, Require.isNegative(value, 0), message);
 	}
 	
 	/**
 	 * Throws an exception if the provided value is not non-negative; that is to say, if it is less than zero but not equal to zero.
+	 * <p>
+	 * If the provided value is {@code null}, throws an exception.
 	 * 
 	 * @param <V> The type of value to test
 	 * @param value - The value to test
@@ -129,11 +137,13 @@ public final class Require {
 	 * @return The provided value.
 	 */
 	public static <V extends Comparable<Number>> V nonNegative(V value, String message) {
-		return Require.throwIfNot(value, Require.nonNegative(value, 0), message);
+		return Require.throwIfNot(value, Require.isNonNegative(value, 0), message);
 	}
 	
 	/**
 	 * Throws an exception if the provided value is equal to zero.
+	 * <p>
+	 * If the provided value is {@code null}, throws an exception.
 	 * 
 	 * @param <V> The type of value to test
 	 * @param value - The value to test
@@ -141,32 +151,32 @@ public final class Require {
 	 * @return The provided value.
 	 */
 	public static <V extends Comparable<Number>> V nonZero(V value, String message) {
-		return Require.throwIfNot(value, Require.nonZero(value, 0), message);
+		return Require.throwIfNot(value, Require.isNonZero(value, 0), message);
 	}
 	
 	/* Internal Methods */
 	
-	protected static final <Z, T extends Comparable<Z>> boolean positive(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isNegative(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) < 0;
 	}
 	
-	protected static final <Z, T extends Comparable<Z>> boolean nonPositive(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isNonNegative(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) >= 0;
 	}
 	
-	protected static final <Z, T extends Comparable<Z>> boolean negative(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isPositive(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) > 0;
 	}
 	
-	protected static final <Z, T extends Comparable<Z>> boolean nonNegative(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isNonPositive(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) <= 0;
 	}
 	
-	protected static final <Z, T extends Comparable<Z>> boolean zero(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isZero(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) == 0;
 	}
 	
-	protected static final <Z, T extends Comparable<Z>> boolean nonZero(T value, Z zero) {
+	protected static final <Z, T extends Comparable<Z>> boolean isNonZero(T value, Z zero) {
 		return Objects.nonNull(value) && value.compareTo(zero) != 0;
 	}
 	

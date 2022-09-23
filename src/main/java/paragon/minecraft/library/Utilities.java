@@ -191,6 +191,16 @@ public final class Utilities {
 	public static class Misc {
 		
 		private Misc() { }
+		
+		/**
+		 * Returns {@code true} if the provided {@link Collection} is {@code null} or returns true for {@link Collection#isEmpty()}.
+		 * 
+		 * @param collection - The {@link Collection} to examine
+		 * @return Whether the provided reference is {@code null} or is an empty {@link Collection}.
+		 */
+		public static boolean isNullOrEmpty(@Nullable final Collection<?> collection) {
+			return Objects.isNull(collection) || collection.isEmpty();
+		}
 
 		/**
 		 * Invokes the provided {@link Supplier} and applies the provided {@link Consumer} if the object returned by the provided {@link Supplier} is non-{@code null}.
