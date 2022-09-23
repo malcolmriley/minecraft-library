@@ -195,6 +195,21 @@ public final class Utilities {
 		private Misc() { }
 		
 		/**
+		 * Converts the provided {@link Collection} into an unmodifiable {@link List}.
+		 * <p>
+		 * If the provided {@link Collection} is {@code null} or empty, the returned {@link List} will simply be empty.
+		 * <p>
+		 * <b> Important! </b> While the provided {@link Collection} may itself be {@code null}, it may not contain any {@code null} elements.
+		 * 
+		 * @param <T> The type contained in the {@link Collection}
+		 * @param collection - The {@link Collection} to convert
+		 * @return An unmodifiable {@link List} of the elements in the provided {@link Collection}.
+		 */
+		public static <T> List<T> intoUnmodifiableList(@Nullable final Collection<T> collection) {
+			return Misc.isNullOrEmpty(collection) ? List.of() : List.copyOf(collection);
+		}
+		
+		/**
 		 * Converts the provided {@link Collection} of values into a new {@link Set}, using the provided {@link Supplier} as a provider of the set.
 		 * <p>
 		 * If the provided {@link Collection} is {@code null}, an empty {@link Set} will be returned.
@@ -202,7 +217,7 @@ public final class Utilities {
 		 * By default, this method creates a new {@link HashSet} to use. To specify the type of {@link Set} or use an existing one, see {@link #intoSet(Collection, Set)}.
 		 * 
 		 * @param <T> The type contained in the {@link Collection}
-		 * @param collection - The {@link Collection}
+		 * @param collection - The {@link Collection} to convert
 		 * @return A {@link Set}, by definition containing all unique elements of the provided {@link Collection}.
 		 * @see #intoSet(Collection, Set)
 		 */
@@ -219,7 +234,7 @@ public final class Utilities {
 		 * If no existing {@link Set} exists or if no or specific {@link Set} implementation is required, consider {@link #intoSet(Collection)} for simplicity.
 		 * 
 		 * @param <T> The type contained in the {@link Collection}
-		 * @param collection - The {@link Collection}
+		 * @param collection - The {@link Collection} to convert
 		 * @param existingSet - An existing {@link Set} to use, or {@code null}.
 		 * @return A {@link Set}, by definition containing all unique elements of the provided {@link Collection}.
 		 * @see #intoSet(Collection)
