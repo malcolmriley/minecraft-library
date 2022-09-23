@@ -85,6 +85,65 @@ public final class Require {
 		return Require.throwIf(collection, Objects.isNull(collection) || collection.isEmpty(), message);
 	}
 	
+	/**
+	 * Throws an exception if the provided value is not positive; that is to say, if it is less than or equal to zero.
+	 * 
+	 * @param <V> The type of value to test
+	 * @param value - The value to test
+	 * @param message - The message for the {@link IllegalArgumentException} if the value is not positive
+	 * @return The provided value.
+	 */
+	public static <V extends Comparable<Number>> V positive(V value, String message) {
+		return Require.throwIfNot(value, Require.positive(value, 0), message);
+	}
+	/**
+	 * Throws an exception if the provided value is not non-positive; that is to say, if it is less zero but not if it is equal to zero.
+	 * 
+	 * @param <V> The type of value to test
+	 * @param value - The value to test
+	 * @param message - The message for the {@link IllegalArgumentException} if the value is not positive
+	 * @return The provided value.
+	 */
+	public static <V extends Comparable<Number>> V nonPositive(V value, String message) {
+		return Require.throwIfNot(value, Require.nonPositive(value, 0), message);
+	}
+	
+	/**
+	 * Throws an exception if the provided value is not negative; that is to say, if it is greater than or equal to zero.
+	 * 
+	 * @param <V> The type of value to test
+	 * @param value - The value to test
+	 * @param message - The message for the {@link IllegalArgumentException} if the value is not positive
+	 * @return The provided value.
+	 */
+	public static <V extends Comparable<Number>> V negative(V value, String message) {
+		return Require.throwIfNot(value, Require.negative(value, 0), message);
+	}
+	
+	/**
+	 * Throws an exception if the provided value is not non-negative; that is to say, if it is less than zero but not equal to zero.
+	 * 
+	 * @param <V> The type of value to test
+	 * @param value - The value to test
+	 * @param message - The message for the {@link IllegalArgumentException} if the value is not positive
+	 * @return The provided value.
+	 */
+	public static <V extends Comparable<Number>> V nonNegative(V value, String message) {
+		return Require.throwIfNot(value, Require.nonNegative(value, 0), message);
+	}
+	
+	/**
+	 * Throws an exception if the provided value is equal to zero.
+	 * 
+	 * @param <V> The type of value to test
+	 * @param value - The value to test
+	 * @param message - The message for the {@link IllegalArgumentException} if the value is not positive
+	 * @return The provided value.
+	 */
+	public static <V extends Comparable<Number>> V nonZero(V value, String message) {
+		return Require.throwIfNot(value, Require.nonZero(value, 0), message);
+	}
+	
 	/* Internal Methods */
 	
 	protected static final <Z, T extends Comparable<Z>> boolean positive(T value, Z zero) {
@@ -111,11 +170,19 @@ public final class Require {
 		return Objects.nonNull(value) && value.compareTo(zero) != 0;
 	}
 	
+	protected static final <T> T throwIfNot(T instance, boolean shouldThrow, Supplier<String> messageProvider) {
+		return Require.throwIf(instance, !shouldThrow, messageProvider);
+	}
+	
 	protected static final <T> T throwIf(T instance, boolean shouldThrow, Supplier<String> messageProvider) {
 		if (shouldThrow) {
 			throw new IllegalArgumentException(messageProvider.get());
 		}
 		return instance;
+	}
+	
+	protected static final <T> T throwIfNot(T instance, boolean shouldThrow, String message) {
+		return Require.throwIf(instance, !shouldThrow, message);
 	}
 	
 	protected static final <T> T throwIf(T instance, boolean shouldThrow, String message) {
