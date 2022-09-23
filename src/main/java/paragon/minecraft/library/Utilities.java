@@ -1,11 +1,13 @@
 package paragon.minecraft.library;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -191,6 +193,44 @@ public final class Utilities {
 	public static class Misc {
 		
 		private Misc() { }
+		
+		/**
+		 * Converts the provided {@link Collection} of values into a new {@link Set}, using the provided {@link Supplier} as a provider of the set.
+		 * <p>
+		 * If the provided {@link Collection} is {@code null}, an empty {@link Set} will be returned.
+		 * <p>
+		 * By default, this method creates a new {@link HashSet} to use. To specify the type of {@link Set} or use an existing one, see {@link #intoSet(Collection, Set)}.
+		 * 
+		 * @param <T> The type contained in the {@link Collection}
+		 * @param collection - The {@link Collection}
+		 * @return A {@link Set}, by definition containing all unique elements of the provided {@link Collection}.
+		 * @see #intoSet(Collection, Set)
+		 */
+		public static <T> Set<T> intoSet(@Nullable final Collection<T> collection) {
+			return Misc.intoSet(collection, null);
+		}
+		
+		/**
+		 * Converts the provided {@link Collection} of values into a new {@link Set}, using the provided {@link Supplier} as a provider of the set.
+		 * <p>
+		 * If the provided {@link Collection} is {@code null}, an empty {@link Set} will be returned. If the provided {@link Set} is {@code null},
+		 * a new {@link HashSet} will be created and filled.
+		 * <p>
+		 * If no existing {@link Set} exists or if no or specific {@link Set} implementation is required, consider {@link #intoSet(Collection)} for simplicity.
+		 * 
+		 * @param <T> The type contained in the {@link Collection}
+		 * @param collection - The {@link Collection}
+		 * @param existingSet - An existing {@link Set} to use, or {@code null}.
+		 * @return A {@link Set}, by definition containing all unique elements of the provided {@link Collection}.
+		 * @see #intoSet(Collection)
+		 */
+		public static <T> Set<T> intoSet(@Nullable final Collection<T> collection, @Nullable final Set<T> existingSet) {
+			final Set<T> set = Objects.requireNonNullElseGet(existingSet, HashSet::new);
+			if (!Misc.isNullOrEmpty(collection)) {
+				collection.forEach(set::add);
+			}
+			return set;
+		}
 		
 		/**
 		 * Returns {@code true} if the provided {@link Collection} is {@code null} or returns true for {@link Collection#isEmpty()}.
