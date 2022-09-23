@@ -82,7 +82,7 @@ public final class Require {
 	 * @return The provided {@link Collection} if it is not {@code null} or empty, else an {@link IllegalArgumentException} is thrown.
 	 */
 	public static <T extends Collection<?>> T notNullOrEmpty(T collection, String message) {
-		return Require.throwIf(collection, Objects.isNull(collection) || collection.isEmpty(), message);
+		return Require.throwIf(collection, Utilities.Misc.isNullOrEmpty(collection), message);
 	}
 	
 	/**
