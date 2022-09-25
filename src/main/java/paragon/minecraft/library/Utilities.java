@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 
@@ -88,6 +89,21 @@ public final class Utilities {
 	public static final class Codecs {
 		
 		private Codecs() { }
+		
+		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code <PREFIX>_tag}, or for a {@link ResourceLocation} ID field named {@code <PREFIX>_id}, in both cases using
+		 * the provided {@link String} prefix.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
+		 * @param prefix - A {@link String} prefix to prepend to each field
+		 * @return A {@link Codec} accepting either {@link TagKey} or {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nonnull final String prefix) {
+			return Codec.mapEither(TagKey.codec(key).fieldOf(Strings.name(prefix, "tag")), Codecs.activeRegistry(key).fieldOf(Strings.name(prefix, "id"))).codec();
+		}
 		
 		/**
 		 * Returns a {@link Codec} that samples the active registry for instances by {@link ResourceLocation} id.
