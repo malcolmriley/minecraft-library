@@ -35,6 +35,7 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
@@ -69,6 +70,7 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.registries.RegistryManager;
 import net.minecraftforge.registries.RegistryObject;
 
 /**
@@ -79,6 +81,26 @@ import net.minecraftforge.registries.RegistryObject;
 public final class Utilities {
 
 	private Utilities() {}
+	
+	/**
+	 * Container class for {@link Codec} related static utility functions.
+	 */
+	public static final class Codecs {
+		
+		private Codecs() { }
+		
+		/**
+		 * Returns a {@link Codec} that samples the active registry for instances by {@link ResourceLocation} id.
+		 * 
+		 * @param <T> The type contained in the registry
+		 * @param key - The {@link ResourceKey} for the registry
+		 * @return A {@link Codec} that accesses the active registry.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<T> activeRegistry(ResourceKey<? extends Registry<T>> key) {
+			return RegistryManager.ACTIVE.getRegistry(key).getCodec();
+		}
+		
+	}
 	
 	/**
 	 * Container class for {@link Player} related static utility functions.
