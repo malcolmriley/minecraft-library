@@ -73,6 +73,7 @@ import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryManager;
 import net.minecraftforge.registries.RegistryObject;
+import paragon.minecraft.library.storage.ICodecProvider;
 
 /**
  * Container class for various static utility functions.
@@ -99,6 +100,17 @@ public final class Utilities {
 		 */
 		public static <T> Codec<Set<T>> setOf(@Nonnull final Codec<T> innerCodec) {
 			return Codec.list(innerCodec).xmap(Utilities.Misc::intoSet, List::copyOf);
+		}
+		
+		/**
+		 * Creates a {@link Codec} for an {@link IForgeRegistryEntry} subtype that itself has subtypes that each provide their own {@link Codec}.
+		 * 
+		 * @param <T> The base type of the {@link Codec}
+		 * @param key - The {@link ResourceKey} for the associated registry
+		 * @return A {@link Codec} that looks up the individual instance from the active registry, and then returns the {@link Codec} provided by that type.
+		 */
+		public static <T extends ICodecProvider<T> & IForgeRegistryEntry<T>> Codec<T> byIDWithSubtypeDispatch(ResourceKey<? extends Registry<T>> key) {
+			return Codecs.activeRegistry(key).dispatch(Function.identity(), T::getCodec);
 		}
 		
 		/**
