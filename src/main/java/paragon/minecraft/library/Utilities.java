@@ -102,6 +102,33 @@ public final class Utilities {
 		}
 		
 		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link Set} of the desired type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
+		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, Set<T>>> tagOrIDSet(@Nonnull final ResourceKey<? extends Registry<T>> key) {
+			return Codecs.tagOrIDSet(key, null);
+		}
+
+		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link Set} of the desired type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID list field named {@code ids}.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
+		 * @param prefix - An optional {@link String} prefix to prepend to each field
+		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, Set<T>>> tagOrIDSet(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
+			return Codecs.tagOrOther(key, Codecs.setOf(Codecs.activeRegistry(key)), prefix, "ids");
+		}
+		
+		/**
 		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
 		 * <p>
 		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
