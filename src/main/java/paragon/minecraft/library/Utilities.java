@@ -233,6 +233,19 @@ public final class Utilities {
 		private Misc() { }
 		
 		/**
+		 * Wraps the provided {@link Collection} subtype into an {@link Optional}. If the provided {@link Collection} is {@code null} or empty,
+		 * the returned {@link Optional} will also be empty.
+		 * 
+		 * @param <T> - The type contained in the {@link Collection}
+		 * @param <C> - The {@link Collection} type
+		 * @param collection - The {@link Collection} instance
+		 * @return An {@link Optional} containing the {@link Collection}, or an empty one if the {@link Collection} was {@code null} or empty.
+		 */
+		public static <T, C extends Collection<T>> Optional<C> wrap(@Nullable final C collection) {
+			return Misc.isNullOrEmpty(collection) ? Optional.empty() : Optional.of(collection);
+		}
+		
+		/**
 		 * Converts the provided {@link Collection} into an unmodifiable {@link List}.
 		 * <p>
 		 * If the provided {@link Collection} is {@code null} or empty, the returned {@link List} will simply be empty.
