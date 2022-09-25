@@ -91,18 +91,58 @@ public final class Utilities {
 		private Codecs() { }
 		
 		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
 		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code <PREFIX>_tag}, or for a {@link ResourceLocation} ID field named {@code <PREFIX>_id}, in both cases using
-		 * the provided {@link String} prefix.
+		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
 		 * 
 		 * @param <T> - The desired type
 		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @param prefix - A {@link String} prefix to prepend to each field
+		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, List<T>>> tagOrIDList(@Nonnull final ResourceKey<? extends Registry<T>> key) {
+			return Codecs.tagOrIDList(key, null);
+		}
+		
+		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID list field named {@code ids}.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
+		 * @param prefix - An optional {@link String} prefix to prepend to each field
+		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, List<T>>> tagOrIDList(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
+			return Codecs.tagOrOther(key, Codec.list(Codecs.activeRegistry(key)), prefix, "ids");
+		}
+		
+		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
 		 * @return A {@link Codec} accepting either {@link TagKey} or {@link ResourceLocation} id for the desired type.
 		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nonnull final String prefix) {
-			return Codec.mapEither(TagKey.codec(key).fieldOf(Strings.name(prefix, "tag")), Codecs.activeRegistry(key).fieldOf(Strings.name(prefix, "id"))).codec();
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key) {
+			return Codecs.tagOrID(key, null);
+		}
+		
+		/**
+		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
+		 * <p>
+		 * The codec will look for a {@link TagKey} field named {@code <PREFIX>_tag}, or for a {@link ResourceLocation} ID field named {@code <PREFIX>_id}, in both cases using
+		 * the provided {@link String} prefix. If the prefix is null, the fields will simply be {@code tag} and {@code id} respectively.
+		 * 
+		 * @param <T> - The desired type
+		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
+		 * @param prefix - An optional {@link String} prefix to prepend to each field
+		 * @return A {@link Codec} accepting either {@link TagKey} or {@link ResourceLocation} id for the desired type.
+		 */
+		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
+			return Codecs.tagOrOther(key, Codecs.activeRegistry(key), prefix, "id");
 		}
 		
 		/**
@@ -114,6 +154,19 @@ public final class Utilities {
 		 */
 		public static <T extends IForgeRegistryEntry<T>> Codec<T> activeRegistry(ResourceKey<? extends Registry<T>> key) {
 			return RegistryManager.ACTIVE.getRegistry(key).getCodec();
+		}
+		
+		/* Internal Methods */
+		
+		protected static final <T, K> Codec<Either<TagKey<T>, K>> tagOrOther(@Nonnull final ResourceKey<? extends Registry<T>> key, Codec<K> other, final String prefix, final String otherSuffix) {
+			return Codec.mapEither(TagKey.codec(key).fieldOf(optionalPrefix(prefix, "tag")), other.fieldOf(optionalPrefix(prefix, otherSuffix))).codec();
+		}
+		
+		protected static final String optionalPrefix(@Nullable String prefix, @Nonnull String suffix) {
+			if (Objects.isNull(prefix)) {
+				return suffix;
+			}
+			return Strings.name(prefix, suffix);
 		}
 		
 	}
