@@ -91,6 +91,17 @@ public final class Utilities {
 		private Codecs() { }
 		
 		/**
+		 * Creates a {@link Codec} for a {@link Set} of the provided inner {@link Codec} type.
+		 * 
+		 * @param <T> The inner type
+		 * @param innerCodec - The {@link Codec} to use for the inner type
+		 * @return A {@link Codec} for a {@link Set} of the inner type.
+		 */
+		public static <T> Codec<Set<T>> setOf(@Nonnull final Codec<T> innerCodec) {
+			return Codec.list(innerCodec).xmap(Utilities.Misc::intoSet, List::copyOf);
+		}
+		
+		/**
 		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
 		 * <p>
 		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
