@@ -385,7 +385,7 @@ public final class Utilities {
 		 * @param function - A {@link ToIntFunction} to apply
 		 * @return The simple sum of the values provided as above.
 		 */
-		public static <T> float intSum(Collection<T> collection, ToIntFunction<? super T> function) {
+		public static <T> int intSum(Collection<T> collection, ToIntFunction<? super T> function) {
 			int sum = 0;
 			for (T instance : collection) {
 				sum += function.applyAsInt(instance);
