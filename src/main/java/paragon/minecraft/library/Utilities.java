@@ -663,6 +663,15 @@ public final class Utilities {
 			return NBT.tryGetCompound(field, tag).flatMap(found -> Codecs.decodeNBT(decoder, found, onError));
 		}
 		
+
+		public static <T> void tryEncode(final String field, @Nonnull final ItemStack stack, Codec<T> encoder, T data) {
+			NBT.tryWrite(encoder, data, dataTag -> stack.getOrCreateTag().put(field, dataTag));
+		}
+		
+		public static <T> void tryEncode(final String field, @Nonnull final CompoundTag tag, Codec<T> encoder, T data) {
+			NBT.tryWrite(encoder, data, dataTag -> tag.put(field, tag));
+		}
+		
 		/**
 		 * Safely Stringifies the provided {@link CompoundTag}, even if it is {@code null}.
 		 * 
@@ -690,6 +699,10 @@ public final class Utilities {
 		public static interface INBTAccessor<T> extends INBTReader<T>, INBTWriter<T> { }
 		
 		/* Internal Methods */
+		
+		protected static <T> void tryWrite(Codec<T> encoder, T data, Consumer<? super Tag> action) {
+			encoder.encodeStart(NbtOps.INSTANCE, data).result().ifPresent(action);
+		}
 		
 		protected static <T> Optional<T> tryReadUsing(final String key, @Nullable CompoundTag source, int type, INBTReader<T> reader) {
 			return NBT.hasField(key, source, type) ? Optional.ofNullable(reader.readFrom(source, key)) : Optional.empty();
