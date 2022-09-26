@@ -79,7 +79,7 @@ public abstract class ContentProvider<T extends IForgeRegistryEntry<T>> implemen
 	 * @param supplier - The {@link Suppllier} for the content
 	 * @return A {@link RegistryObject} handle containing the content
 	 */
-	protected RegistryObject<T> add(String name, Supplier<T> supplier) {
+	protected <S extends T> RegistryObject<S> add(String name, Supplier<S> supplier) {
 		return this.ALL.register(name, supplier);
 	}
 
