@@ -24,7 +24,6 @@ import com.google.common.collect.Streams;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Either;
-import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 
@@ -661,11 +660,7 @@ public final class Utilities {
 		}
 		
 		public static <T> Optional<T> tryDecode(final String field, @Nullable final CompoundTag tag, Codec<T> decoder, Consumer<String> onError) {
-			return NBT.tryGetCompound(field, tag).flatMap(found -> 
-				decoder.decode(NbtOps.INSTANCE, found)
-					.resultOrPartial(onError)
-					.map(Pair::getFirst)
-				);
+			return NBT.tryGetCompound(field, tag).flatMap(found -> Codecs.decodeNBT(decoder, found, onError));
 		}
 		
 		/**
