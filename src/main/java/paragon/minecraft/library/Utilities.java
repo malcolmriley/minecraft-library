@@ -26,6 +26,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 
 import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
@@ -90,6 +91,46 @@ public final class Utilities {
 	public static final class Codecs {
 		
 		private Codecs() { }
+		
+		/**
+		 * Attempts to decode the provided {@link CompoundTag} using {@link NbtOps#INSTANCE} without accepting partial results and using the provided {@link Consumer} to accept any errors.
+		 * <p>
+		 * If the aggregate decode operation succeeds, the result will be placed in the returned {@link Optional}. If the aggregate operation fails or if the provided data was {@code null},
+		 * an empty {@link Optional} will be returned instead.
+		 * 
+		 * @param <T> The result type
+		 * @param codec - The {@link Codec} to use
+		 * @param tag - The {@link CompoundTag} to decode
+		 * @param onError - An action to perform per {@link String} error thrown
+		 * @return An {@link Optional} containing the successfully decoded instance, or an empty {@link Optional}.
+		 */
+		public static <T> Optional<T> decodeNBT(@Nonnull final Codec<T> codec, @Nullable final CompoundTag tag, @Nonnull final Consumer<String> onError) {
+			return Codecs.decodeUsing(codec, tag, NbtOps.INSTANCE, onError);
+		}
+		
+		/**
+		 * Attepts to decode the provided data type using the provided {@link DynamicOps} without partial results and using the provided {@link Consumer} to accept any errors.
+		 * <p>
+		 * If the aggregate decode operation succeeds, the result will be placed in the returned {@link Optional}. If the aggregate operation fails or if the provided data was {@code null},
+		 * an empty {@link Optional} will be returned instead.
+		 * 
+		 * @param <T> The result type
+		 * @param <D> The data type
+		 * @param codec - The {@link Codec} to use
+		 * @param data - The data to decode
+		 * @param ops - The {@link DynamicOps} instance to use
+		 * @param onError - An action to perform per {@link String} error thrown
+		 * @return An {@link Optional} containing the successfully decoded instance, or an empty {@link Optional}.
+		 */
+		public static <T, D> Optional<T> decodeUsing(@Nonnull final Codec<T> codec, @Nullable final D data, @Nonnull final DynamicOps<D> ops, @Nonnull final Consumer<String> onError) {
+			if (Objects.isNull(data)) {
+				return Optional.empty();
+			}
+			return codec.decode(ops, data)
+				.getOrThrow(false, onError)
+				.mapFirst(Optional::ofNullable)
+				.getFirst();
+		}
 		
 		/**
 		 * Creates a {@link Codec} for a {@link Set} of the provided inner {@link Codec} type.
