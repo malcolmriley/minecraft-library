@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -44,6 +45,7 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
+import net.minecraft.util.ToFloatFunction;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -374,6 +376,38 @@ public final class Utilities {
 	public static class Misc {
 		
 		private Misc() { }
+		
+		/**
+		 * Returns the sum of the values yielded by applying the provided {@link ToIntFunction} to each element of the provided {@link Collection}.
+		 * 
+		 * @param <T> The type contained in the {@link Collection}
+		 * @param collection - The {@link Collection} to examine
+		 * @param function - A {@link ToIntFunction} to apply
+		 * @return The simple sum of the values provided as above.
+		 */
+		public static <T> float sum(Collection<T> collection, ToIntFunction<? super T> function) {
+			int sum = 0;
+			for (T instance : collection) {
+				sum += function.applyAsInt(instance);
+			}
+			return sum;
+		}
+
+		/**
+		 * Returns the sum of the values yielded by applying the provided {@link ToFloatFunction} to each element of the provided {@link Collection}.
+		 * 
+		 * @param <T> The type contained in the {@link Collection}
+		 * @param collection - The {@link Collection} to examine
+		 * @param function - A {@link ToFloatFunction} to apply
+		 * @return The simple sum of the values provided as above.
+		 */
+		public static <T> float sum(Collection<T> collection, ToFloatFunction<T> function) {
+			float sum = 0;
+			for(T instance : collection) {
+				sum += function.apply(instance);
+			}
+			return sum;
+		}
 		
 		/**
 		 * Wraps the provided {@link Collection} subtype into an {@link Optional}. If the provided {@link Collection} is {@code null} or empty,
