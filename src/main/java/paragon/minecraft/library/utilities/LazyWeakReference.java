@@ -1,4 +1,4 @@
-package paragon.minecraft.library;
+package paragon.minecraft.library.utilities;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;

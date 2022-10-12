@@ -17,7 +17,7 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
-import paragon.minecraft.library.Utilities;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Data-Generator class for generating {@link FinishedRecipe}.

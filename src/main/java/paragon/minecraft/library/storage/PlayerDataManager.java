@@ -21,8 +21,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.SerializableUUID;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import paragon.minecraft.library.Utilities;
 import paragon.minecraft.library.network.AbstractNetworkHandler;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Base class for managing instances of per-player data. Has helper methods for generating appropriate {@link Codec} as well as

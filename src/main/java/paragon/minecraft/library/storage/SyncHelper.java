@@ -11,10 +11,10 @@ import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import paragon.minecraft.library.Utilities;
 import paragon.minecraft.library.network.AbstractNetworkHandler;
 import paragon.minecraft.library.network.AbstractNetworkHandler.INetworkMessage;
 import paragon.minecraft.library.registration.IEventBusListener;
+import paragon.minecraft.library.utilities.Utilities;
 
 public class SyncHelper<T extends IDataHolder.Syncable> implements IEventBusListener.Simple {
 	

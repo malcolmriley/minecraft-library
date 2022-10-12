@@ -8,7 +8,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistryEntry;
 import net.minecraftforge.registries.RegistryObject;
-import paragon.minecraft.library.Utilities;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Convenience class for registering content to Forge.

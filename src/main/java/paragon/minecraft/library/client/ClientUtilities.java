@@ -31,7 +31,7 @@ import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.client.MinecraftForgeClient;
 import net.minecraftforge.registries.RegistryObject;
-import paragon.minecraft.library.Utilities;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Container class for client-only utilities.

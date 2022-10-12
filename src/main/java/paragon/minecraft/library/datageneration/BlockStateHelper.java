@@ -10,7 +10,7 @@ import net.minecraftforge.client.model.generators.ConfiguredModel;
 import net.minecraftforge.client.model.generators.ModelProvider;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.registries.RegistryObject;
-import paragon.minecraft.library.Utilities;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Data-Generator class for generating blockstate files and block models.

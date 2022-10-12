@@ -24,7 +24,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import paragon.minecraft.library.Utilities;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * Simple holder and decoder class for data-driven objects. This class when registered to the Forge event bus, receives {@link AddReloadListenerEvent} for files in the provided datapack directory.

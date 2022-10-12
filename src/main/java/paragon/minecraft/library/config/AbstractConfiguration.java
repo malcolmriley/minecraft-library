@@ -1,4 +1,4 @@
-package paragon.minecraft.library;
+package paragon.minecraft.library.config;
 
 import java.util.ArrayList;
 import java.util.Collection;

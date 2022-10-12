@@ -20,9 +20,9 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import paragon.minecraft.library.Require;
-import paragon.minecraft.library.Utilities;
 import paragon.minecraft.library.registration.IEventBusListener;
+import paragon.minecraft.library.utilities.Require;
+import paragon.minecraft.library.utilities.Utilities;
 
 /**
  * This class enables {@link PlayerDataManager} to persist data to disk.

@@ -1,4 +1,4 @@
-package paragon.minecraft.library;
+package paragon.minecraft.library.utilities;
 
 import java.util.Collection;
 import java.util.HashSet;

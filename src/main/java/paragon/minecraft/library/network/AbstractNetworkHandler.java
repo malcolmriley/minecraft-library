@@ -18,7 +18,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.PacketDistributor.PacketTarget;
 import net.minecraftforge.network.simple.SimpleChannel;
-import paragon.minecraft.library.Require;
+import paragon.minecraft.library.utilities.Require;
 
 /**
  * Abstract class to ease in the implementation of {@link SimpleChannel}-based networking.
