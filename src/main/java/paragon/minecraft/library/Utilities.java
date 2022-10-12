@@ -646,6 +646,22 @@ public final class Utilities {
 			};
 		}
 		
+		/**
+		 * Method to automatically copy a number of existing fields from the source {@link CompoundTag} to the destination {@link CompoundTag}. Similar to a deep
+		 * copy of a {@link CompoundTag} but allows for optional and selective copying of held fields.
+		 * <p>
+		 * The copy operation will automatically determine the types of the named fields, transcribing them appropriately.
+		 * <p>
+		 * If the named fields do not exist on the source {@link CompoundTag} this method does not copy the field and no such field will exist on the
+		 * destination {@link CompoundTag}.
+		 * <p>
+		 * If none of the named fields exist on the source {@link CompoundTag}, this method will not invoke the provided {@link Supplier} so the destination
+		 * may remain uninitialized (if wrapping {@link ItemStack#getOrCreateTag()} as the supplier, for instance).
+		 * 
+		 * @param source - The {@link CompoundTag} to copy from
+		 * @param destination - A {@link Supplier} of a {@link CompoundTag} to copy to
+		 * @param fields - The names of the fields to copy.
+		 */
 		public static void autoCopyFields(@Nullable final CompoundTag source, Supplier<CompoundTag> destination, String ... fields) {
 			if (Objects.nonNull(source)) {
 				for (String field : fields) {
@@ -654,10 +670,28 @@ public final class Utilities {
 			}
 		}
 		
+		/**
+		 * Attempts to automatically copy a single existing fields from the source {@link CompoundTag} to the destination {@link CompoundTag}. Similar to a deep
+		 * copy of a {@link CompoundTag} but allows for optional and selective copying of a field.
+		 * <p>
+		 * The copy operation will automatically determine the types of the named fields, transcribing them appropriately.
+		 * <p>
+		 * If the named fields do not exist on the source {@link CompoundTag} this method does not copy the field and no such field will exist on the
+		 * destination {@link CompoundTag}.
+		 * <p>
+		 * If none of the named fields exist on the source {@link CompoundTag}, this method will not invoke the provided {@link Supplier} so the destination
+		 * may remain uninitialized (if wrapping {@link ItemStack#getOrCreateTag()} as the supplier, for instance).
+		 * 
+		 * @param source - The {@link CompoundTag} to copy from
+		 * @param destination - A {@link Supplier} of a {@link CompoundTag} to copy to
+		 * @param field - The name of the field to copy.
+		 */
 		public static <T> void autoCopyField(@Nonnull final CompoundTag source, Supplier<CompoundTag> optionalDestination, String field) {
 			if (source.contains(field)) {
 				byte type = source.getTagType(field);
-				NBT.copyFieldUsing(field, field, source, optionalDestination, type, NBT.tryGetReaderForType(type).get(), NBT.tryGetWriterForType(type).get());
+				if (type > 0) { // Belt AND suspenders
+					NBT.copyFieldUsing(field, field, source, optionalDestination, type, NBT.tryGetReaderForType(type).get(), NBT.tryGetWriterForType(type).get());
+				}
 			}
 		}
 		
@@ -681,8 +715,22 @@ public final class Utilities {
 			NBT.copyOptionalFieldUsing(sourceField, destinationField, source, destination, CompoundTag.TAG_LIST, (tag, key) -> tag.getList(sourceField, listType), (tag, key, value) -> tag.put(key, value));
 		}
 		
-		public static boolean hasField(final String field, @Nullable final CompoundTag tag, final int type) {
-			return Objects.nonNull(tag) && tag.contains(field, type);
+		/**
+		 * Safely determines whether the possibly-{@code null} {@link CompoundTag} contains a field of the provided name and type.
+		 * <p>
+		 * For this method to return {@code TRUE}, all of the following must be true:
+		 * <li> The provided {@link CompoundTag} must not be {@code null} </li>
+		 * <li> The provided {@link String} field name must not be {@code null} and must also not be empty </li>
+		 * <li> The provided {@link CompoundTag} must have a field of the provided name and type. </li>
+		 * In all other cases, this method will return {@code FALSE}.
+		 * 
+		 * @param field - The name of the field to check for
+		 * @param tag - The {@link CompoundTag} to check
+		 * @param type - The type of the field to check for
+		 * @return Whether the provided {@link CompoundTag} is non-{@code null} and contains a field of the provided name and type.
+		 */
+		public static boolean hasField(final String field, final int type, @Nullable final CompoundTag tag) {
+			return Objects.nonNull(tag) && !Strings.isNullOrEmpty(field) && tag.contains(field, type);
 		}
 		
 		public static Optional<String> tryGetString(final String field, @Nullable final CompoundTag tag) {
@@ -697,13 +745,20 @@ public final class Utilities {
 			return NBT.tryGetCompound(field, tag).flatMap(found -> Codecs.decodeNBT(decoder, found, onError));
 		}
 		
-
 		public static <T> void tryEncode(final String field, @Nonnull final ItemStack stack, Codec<T> encoder, T data) {
 			NBT.tryWrite(encoder, data, dataTag -> stack.getOrCreateTag().put(field, dataTag));
 		}
 		
 		public static <T> void tryEncode(final String field, @Nonnull final CompoundTag tag, Codec<T> encoder, T data) {
 			NBT.tryWrite(encoder, data, dataTag -> tag.put(field, tag));
+		}
+		
+		public static <T> void tryEncode(@Nonnull final String field, @Nonnull final ItemStack stack, @Nonnull final Codec<T> encoder, @Nonnull final Optional<T> data) {
+			data.ifPresent(held -> NBT.tryEncode(field, stack, encoder, held));
+		}
+		
+		public static <T> void tryEncode(@Nonnull final String field, @Nonnull final CompoundTag tag, @Nonnull final Codec<T> encoder, @Nonnull final Optional<T> data) {
+			data.ifPresent(held -> NBT.tryEncode(field, tag, encoder, held));
 		}
 		
 		/**
@@ -718,12 +773,14 @@ public final class Utilities {
 		
 		/* Accessor interface implementations */
 		
+		@FunctionalInterface
 		public static interface INBTReader<T> {
 			
 			public T readFrom(final @Nonnull CompoundTag source, final @Nonnull String key);
 			
 		}
 		
+		@FunctionalInterface
 		public static interface INBTWriter<T> {
 			
 			public void writeTo(final @Nonnull CompoundTag destination, final @Nonnull String field, T value);
@@ -739,11 +796,11 @@ public final class Utilities {
 		}
 		
 		protected static <T> Optional<T> tryReadUsing(final String key, @Nullable CompoundTag source, int type, INBTReader<T> reader) {
-			return NBT.hasField(key, source, type) ? Optional.ofNullable(reader.readFrom(source, key)) : Optional.empty();
+			return NBT.hasField(key, type, source) ? Optional.ofNullable(reader.readFrom(source, key)) : Optional.empty();
 		}
 		
 		protected static <T> void copyOptionalFieldUsing(final String sourceFieldName, final String destinationFieldName, @Nullable CompoundTag source, final Supplier<CompoundTag> optionalDestination, final int fieldType, final INBTReader<T> getter, final INBTWriter<T> setter) {
-			if (NBT.hasField(sourceFieldName, source, fieldType)) {
+			if (NBT.hasField(sourceFieldName, fieldType, source)) {
 				NBT.copyFieldUsing(sourceFieldName, destinationFieldName, source, optionalDestination, fieldType, getter, setter);
 			}
 		}
