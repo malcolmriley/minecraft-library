@@ -27,7 +27,7 @@ public class LazyWeakReference<T> implements Supplier<T> {
 	 * @param initializer - An initializer or provider for the type in question.
 	 */
 	public LazyWeakReference(@Nonnull Supplier<T> initializer) {
-		this.INITIALIZER = Objects.requireNonNull(initializer, "Initializer for LazyWeakSuppliers cannot be null!");
+		this.INITIALIZER = Objects.requireNonNull(initializer, "Initializer for LazyWeakReferences cannot be null!");
 		this.REFERENCE = new WeakReference<>(null);
 	}
 	
