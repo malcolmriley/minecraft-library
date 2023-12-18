@@ -143,6 +143,19 @@ public final class Require {
 	public static <T extends Collection<?>> T notNullOrEmpty(T collection, String message) {
 		return Require.throwIf(collection, Utilities.Misc.isNullOrEmpty(collection), message);
 	}
+	
+	/**
+	 * Throws an {@link IllegalArgumentException} if either of the provided {@link Object} are {@code null}, or if they are equal as per {@link Objects#equals(Object, Object)}.
+	 * 
+	 * @param first - One {@link Object} to compare
+	 * @param second - Another {@link Object} to compare
+	 * @param message - An exception message to throw if the provided are equal or either is {@code null}.
+	 */
+	public static void notEqualAndNonNull(Object first, Object second, String message) {
+		if (Objects.isNull(first) || Objects.isNull(second) || Objects.equals(first, second)) {
+			throw new IllegalArgumentException(message);
+		}
+	}
 
 	/**
 	 * Throws an exception if the provided value is not positive; that is to say, if it is less than or equal to zero.

@@ -41,19 +41,22 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stat;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.util.ToFloatFunction;
-import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.Nameable;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.MenuConstructor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -1578,46 +1581,75 @@ public final class Utilities {
 	public static class UI {
 
 		private UI() {}
-
+		
 		/**
-		 * Helper method to open the UI for a named-{@link Container}-providing {@link BlockEntity} supposedly at
-		 * the indicated {@link BlockPos}.
+		 * Generic logic for opening a menu from the block at the indicated position. This method can be safely called from either side
+		 * as it checks that the provided {@link Level} and {@link Player} instances are server-sided.
 		 * <p>
-		 * If there is a {@link BlockEntity} at the indicated {@link BlockPos} and it implements {@link MenuProvider}, and furthermore if the passed
-		 * {@link Player} is also be an instance of {@link ServerPlayer}, then {@link NetworkHooks#openGui(ServerPlayer, MenuProvider, BlockPos)}
-		 * is called and the method returns {@code true}.
-		 * In all other cases, the method returns {@code false}.
-		 *
+		 * Intended to be used within {@link Block#use(BlockState, Level, BlockPos, Player, InteractionHand, net.minecraft.world.phys.BlockHitResult)}
+		 * as relevant.
+		 * 
 		 * @param player - The player opening the UI
-		 * @param world - The {@link LevelAccessor} containing the {@link BlockEntity}
+		 * @param level - A {@link Level} reference
 		 * @param position - The {@link BlockPos} of the {@link BlockEntity}
-		 * @return {@code true} if an attempt was made to open the UI, and {@code false} otherwise.
+		 * @return A side-suitable and result-suitable {@link InteractionResult}.
 		 */
-		public static boolean openUIFor(Player player, LevelAccessor world, BlockPos position) {
-			final BlockEntity discovered = world.getBlockEntity(position);
-			if ((discovered instanceof MenuProvider provider) && (player instanceof ServerPlayer serverPlayer)) {
-				NetworkHooks.openScreen(serverPlayer, provider, position);
-				return true;
+		public static InteractionResult openMenu(Player player, Level level, BlockPos position) {
+			return UI.openMenu(player, level, position, null);
+		}
+		
+		/**
+		 * Generic logic for opening a menu from the block at the indicated position. This method can be safely called from either side
+		 * as it checks that the provided {@link Level} and {@link Player} instances are server-sided.
+		 * <p>
+		 * Intended to be used within {@link Block#use(BlockState, Level, BlockPos, Player, InteractionHand, net.minecraft.world.phys.BlockHitResult)}
+		 * as relevant.
+		 * 
+		 * @param player - The player opening the UI
+		 * @param level - A {@link Level} reference
+		 * @param position - The {@link BlockPos} of the {@link BlockEntity}
+		 * @param interaction - A {@link ResourceLocation} corresponding to the {@link Stat} award for interacting with the relevant {@link Block}
+		 * @return A side-suitable and result-suitable {@link InteractionResult}.
+		 */
+		public static InteractionResult openMenu(Player player, Level level, BlockPos position, @Nullable ResourceLocation interaction) {
+			if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
+				final BlockState state = level.getBlockState(position);
+				NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, position));
+				if (Objects.nonNull(interaction)) {
+					player.awardStat(interaction);
+				}
+				return InteractionResult.CONSUME;
 			}
-			return false;
+			return InteractionResult.sidedSuccess(level.isClientSide());
+		}
+		
+		/**
+		 * Creates a {@link MenuProvider} instance from the provided elements. If the {@link BlockEntity} at the indicated position is {@link Nameable}, it will supply the
+		 * custom name of that {@link BlockEntity} as per {@link Nameable#getDisplayName()}. If there is no {@link Nameable} at the indicated position,
+		 * it will instead supply the name of the {@link Block}.
+		 * 
+		 * @param constructor - A {@link MenuConstructor} for generating menu instances.
+		 * @param level - A {@link Level} reference.
+		 * @param position - The {@link BlockPos} of the block
+		 * @return A suitable {@link MenuProvider}.
+		 */
+		public static MenuProvider createNamedMenuProvider(MenuConstructor constructor, Level level, BlockPos position) {
+			BlockEntity entity = level.getBlockEntity(position);
+			Component title = Objects.nonNull(entity) && entity instanceof Nameable named ? named.getDisplayName() : level.getBlockState(position).getBlock().getName();
+			return UI.createMenuProvider(constructor, level, position, title);
 		}
 
 		/**
-		 * Helper method that can be used as a stand-in for {@link Block#onBlockActivated(BlockState, Level, BlockPos, Player, net.minecraft.util.Hand, net.minecraft.util.math.BlockRayTraceResult)}.
-		 * <p>
-		 * If the provided {@link Level} is not client-side, calls {@link #openUIFor(Player, Level, BlockPos)}, returning {@link InteractionResult#SUCCESS} for a successful UI opening and {@link InteractionResult#CONSUME} for failure.
-		 *
-		 * @see #openUIFor(Player, Level, BlockPos)
-		 * @param player - The player opening the UI
-		 * @param world - The {@link Level} containing the {@link BlockEntity}
-		 * @param position - The {@link BlockPos} of the {@link BlockEntity}
-		 * @return {@link InteractionResult#SUCCESS} if the UI was opened, {@link InteractionResult#CONSUME} if the UI was not, and {@link InteractionResult#SUCCESS} on the standalone client always.
+		 * Creates a {@link MenuProvider} instance from the provided elements. If the provided {@link Component} is null, will substitute {@link Component#empty()}.
+		 * 
+		 * @param constructor - A {@link MenuConstructor} for generating menu instances.
+		 * @param level - A {@link Level} reference.
+		 * @param position - The {@link BlockPos} of the block
+		 * @param title - The {@link Component} to use for the menu title.
+		 * @return A suitable {@link MenuProvider}.
 		 */
-		public static InteractionResult openBlockUIFor(Player player, Level world, BlockPos position) {
-			if (!world.isClientSide()) {
-				return UI.openUIFor(player, world, position) ? InteractionResult.SUCCESS : InteractionResult.CONSUME;
-			}
-			return InteractionResult.sidedSuccess(world.isClientSide());
+		public static MenuProvider createMenuProvider(MenuConstructor constructor, Level level, BlockPos position, @Nullable Component title) {
+			return new SimpleMenuProvider(constructor, Objects.requireNonNullElse(title, Component.empty()));
 		}
 
 	}
