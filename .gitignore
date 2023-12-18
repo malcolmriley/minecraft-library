@@ -23,7 +23,7 @@ out
 # Local-Run Files
 bin
 build
-run
+runs
 logs
 
 # Files from Forge MDK

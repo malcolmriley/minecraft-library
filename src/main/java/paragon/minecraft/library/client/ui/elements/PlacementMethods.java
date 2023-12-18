@@ -9,16 +9,16 @@ import net.minecraft.util.Mth;
  * are provided via {@link PlacementMethods.Factory} to generate {@link IPlacementMethod} based on unvarying parameters.
  * <p>
  * For {@link IPlacementMethod} employing varying parameters of placement, it may still be useful to call the methods here.
- * 
+ *
  * @author Malcolm Riley
  */
 public class PlacementMethods {
-	
+
 	/* Shared Fields */
 	/** Placement Method representing static placement, that is to say, not relative to any other. */
 	public static IPlacementMethod ABSOLUTE = (self, other) -> { /* No op, placement is not relative to another. */ };
-	
-	private PlacementMethods() { }
+
+	private PlacementMethods() {}
 
 	/**
 	 * Set the X position of the {@link IDynamicGuiElement} such that it is vertically aligned with a relative position on the Y axis of the reference {@link IGuiElement}.
@@ -26,7 +26,7 @@ public class PlacementMethods {
 	 * For a value of 0.3, the {@link IDynamicGuiElement} would be placed a third of the way rightwards from the reference {@link IGuiElement}.
 	 * <p>
 	 * For exact centering, see {@link #centerHorizontal(IDynamicGuiElement, IGuiElement)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param value - The relative axial position to use
@@ -35,14 +35,14 @@ public class PlacementMethods {
 		final int position = PlacementMethods.alignTo(self.getWidth(), other.getWidth(), other.getX(), value);
 		self.setX(position);
 	}
-	
+
 	/**
 	 * Set the Y position of the {@link IDynamicGuiElement} such that it is vertically aligned with a relative position on the Y axis of the reference {@link IGuiElement}.
 	 * <p>
 	 * For a value of 0.3, the {@link IDynamicGuiElement} would be placed a third of the way down from the reference {@link IGuiElement}.
 	 * <p>
 	 * For exact centering, see {@link #centerHorizontal(IDynamicGuiElement, IGuiElement)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param value - The relative axial position to use
@@ -51,10 +51,10 @@ public class PlacementMethods {
 		final int position = PlacementMethods.alignTo(self.getHeight(), other.getHeight(), other.getY(), value);
 		self.setY(position);
 	}
-	
+
 	/**
 	 * Set the X position of the {@link IDynamicGuiElement} such that it is horizontally centered within the reference {@link IGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -64,7 +64,7 @@ public class PlacementMethods {
 
 	/**
 	 * Set the X position of the {@link IDynamicGuiElement} such that it is vertically centered within the reference {@link IGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -74,7 +74,7 @@ public class PlacementMethods {
 
 	/**
 	 * Set the X and Y position of the {@link IDynamicGuiElement} such that it is horizontally and vertically centered within the reference {@link IGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -85,7 +85,7 @@ public class PlacementMethods {
 
 	/**
 	 * Set the position and dimensions of the {@link IDynamicGuiElement} such that it is inset within the reference {@link IGuiElement} with a fixed pixel margin on each side.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param margin - The pixel margin on each side
@@ -96,7 +96,7 @@ public class PlacementMethods {
 
 	/**
 	 * Set the position and dimensions of the {@link IDynamicGuiElement} such that it is inset within the reference {@link IGuiElement} with a fixed pixel margin on each side.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param xMargin - The pixel margin on each horizontal side
@@ -110,7 +110,7 @@ public class PlacementMethods {
 	/**
 	 * Set the position and dimensions of the {@link IDynamicGuiElement} such that it is inset within the reference {@link IGuiElement} with margin on each side relative to the dimensions of the
 	 * reference element's sides.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param margin - The relative margin on each side
@@ -122,7 +122,7 @@ public class PlacementMethods {
 	/**
 	 * Set the position and dimensions of the {@link IDynamicGuiElement} such that it is inset within the reference {@link IGuiElement} with margin on each side relative to the dimensions of the
 	 * reference element's sides.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param xMargin - The relative margin on each horizontal side
@@ -131,10 +131,10 @@ public class PlacementMethods {
 	public static void insetRelative(final IDynamicGuiElement self, final IGuiElement other, final float xMargin, final float yMargin) {
 		PlacementMethods.insetFixed(self, other, PlacementMethods.floorMult(other.getWidth(), xMargin), PlacementMethods.floorMult(other.getHeight(), yMargin));
 	}
-	
+
 	/**
 	 * Copies the X and Y position of the reference {@link IGuiElement} to the provided {@link IDynamicGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -145,7 +145,7 @@ public class PlacementMethods {
 
 	/**
 	 * Copies the X position of the reference {@link IGuiElement} to the provided {@link IDynamicGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -155,27 +155,27 @@ public class PlacementMethods {
 
 	/**
 	 * Copies the Y position of the reference {@link IGuiElement} to the provided {@link IDynamicGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
 	public static void copyY(final IDynamicGuiElement self, final IGuiElement other) {
 		self.setY(other.getY());
 	}
-	
+
 	/**
 	 * Copies the dimensions (width and height) of the reference {@link IGuiElement} to the provided {@link IDynamicGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
 	public static void copyDimensions(final IDynamicGuiElement self, final IGuiElement other) {
 		self.setDimensions(other.getWidth(), other.getHeight());
 	}
-	
+
 	/**
 	 * Copies the position and dimensions of the reference {@link IGuiElement} to the provided {@link IDynamicGuiElement}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 */
@@ -188,7 +188,7 @@ public class PlacementMethods {
 	 * Sets the X and Y position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetFixed(IDynamicGuiElement, IGuiElement, int)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param offset - The X and Y offset to apply.
@@ -197,12 +197,12 @@ public class PlacementMethods {
 	public static void offsetFixed(final IDynamicGuiElement self, final IGuiElement other, final int offset) {
 		PlacementMethods.offsetFixed(self, other, offset, offset);
 	}
-	
+
 	/**
 	 * Sets the X and Y position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetFixed(IDynamicGuiElement, IGuiElement, int, int)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param xOffset - The offset to apply to the X coordinate
@@ -213,12 +213,12 @@ public class PlacementMethods {
 		PlacementMethods.offsetFixedHorizontal(self, other, xOffset);
 		PlacementMethods.offsetFixedVertical(self, other, yOffset);
 	}
-	
+
 	/**
 	 * Sets the X position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetFixed(IDynamicGuiElement, IGuiElement, int, int)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param offset - The offset to apply to the X coordinate
@@ -232,7 +232,7 @@ public class PlacementMethods {
 	 * Sets the Y position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetFixed(IDynamicGuiElement, IGuiElement, int, int)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param offset - The offset to apply to the X coordinate
@@ -241,13 +241,13 @@ public class PlacementMethods {
 	public static void offsetFixedVertical(final IDynamicGuiElement self, final IGuiElement other, final int offset) {
 		self.setY(other.getY() + offset);
 	}
-	
+
 	/**
 	 * Sets the X and Y position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset
 	 * that is relative to the dimensions of the reference {@link IGuiElement} on each side.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetRelative(IDynamicGuiElement, IGuiElement, float)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param offset - The relative offset to apply
@@ -256,13 +256,13 @@ public class PlacementMethods {
 	public static void offsetRelative(final IDynamicGuiElement self, final IGuiElement other, final float offset) {
 		PlacementMethods.offsetRelative(self, other, offset, offset);
 	}
-	
+
 	/**
 	 * Sets the X and Y position of the provided {@link IDynamicGuiElement} to the position of the reference {@link IGuiElement} plus an offset
 	 * that is relative to the dimensions of the reference {@link IGuiElement} on each side.
 	 * <p>
 	 * This method does not modify the dimensions (width or height) of the provided {@link IDynamicGuiElement}. For that, see {@link #insetRelative(IDynamicGuiElement, IGuiElement, float, float)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param xOffset - The relative X offset to apply
@@ -277,7 +277,7 @@ public class PlacementMethods {
 	 * Sets the Y position of the provided {@link IDynamicGuiElement} such that its bottom is flush with the bottom of the reference {@link IGuiElement}.
 	 * <p>
 	 * To offset from the bottom by a fixed value, see {@link #offsetFromBottom(IDynamicGuiElement, IGuiElement, int)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param margin - The additional fixed margin value to add to the offset.
@@ -286,14 +286,14 @@ public class PlacementMethods {
 	public static void alignToBottom(final IDynamicGuiElement self, IGuiElement other) {
 		PlacementMethods.offsetFromBottom(self, self, 0);
 	}
-	
+
 	/**
 	 * Sets the Y position of the provided {@link IDynamicGuiElement} based on the position of the bottom of the reference {@link IGuiElement} plus a margin value.
 	 * <p>
 	 * A margin value of 10 would place the provided {@link IDynamicGuiElement} such that its bottom edge is ten pixels above the bottom edge of the reference {@link IGuiOffset}.
 	 * <p>
 	 * To align with the bottom directly, see {@link #alignToBottom(IDynamicGuiElement, IGuiElement)}.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param margin - The additional fixed margin value to add to the offset.
@@ -303,10 +303,10 @@ public class PlacementMethods {
 		final int position = (other.getY() + other.getHeight()) - (self.getHeight() + margin);
 		self.setY(position);
 	}
-	
+
 	/**
 	 * Sets the width of the provided {@link IDynamicGuiElement} to a proportion of the width of the reference {@link IGuiElement} minus a margin.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param proportion - The proportion of the {@link IGuiElement}'s width to copy
@@ -318,7 +318,7 @@ public class PlacementMethods {
 
 	/**
 	 * Sets the height of the provided {@link IDynamicGuiElement} to a proportion of the height of the reference {@link IGuiElement} minus a margin.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param proportion - The proportion of the {@link IGuiElement}'s height to copy
@@ -327,10 +327,10 @@ public class PlacementMethods {
 	public static void verticallyProportional(final IDynamicGuiElement self, final IGuiElement other, final float proportion, final int margin) {
 		self.setHeight(PlacementMethods.calcDimensionWithMargin(proportion, other.getHeight(), margin));
 	}
-	
+
 	/**
 	 * Sets the width and height of the provided {@link IDynamicGuiElement} to a proportion of the height of the reference {@link IGuiElement} minus a margin on all sides.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param proportion - The proportion of the {@link IGuiElement}'s dimensions to copy
@@ -342,7 +342,7 @@ public class PlacementMethods {
 
 	/**
 	 * Sets the width and height of the provided {@link IDynamicGuiElement} to a proportion of the height of the reference {@link IGuiElement} minus a margin on all sides.
-	 * 
+	 *
 	 * @param self - The element to modify
 	 * @param other - the reference element
 	 * @param horizontalProportion - The proportion of the {@link IGuiElement}'s width to copy
@@ -354,106 +354,106 @@ public class PlacementMethods {
 		PlacementMethods.horizontallyProportional(self, other, horizontalProportion, horizontalMargin);
 		PlacementMethods.verticallyProportional(self, other, verticalProportion, verticalMargin);
 	}
-	
+
 	/* Internal Methods */
 
 	protected static int calcDimensionWithMargin(float proportion, int dimension, int margin) {
 		return PlacementMethods.floorMult(proportion, PlacementMethods.floorInset(dimension, margin));
 	}
-	
+
 	protected static int alignTo(final int selfDim, final int otherDim, final int otherPos, final float relative) {
-		return otherPos + PlacementMethods.floorMult(otherDim, relative) - PlacementMethods.floorHalf(selfDim);
+		return (otherPos + PlacementMethods.floorMult(otherDim, relative)) - PlacementMethods.floorHalf(selfDim);
 	}
-	
+
 	protected static int centerDimension(final int selfDim, final int otherDim, final int otherPos) {
 		return (otherPos + PlacementMethods.floorHalf(otherDim)) - PlacementMethods.floorHalf(selfDim);
 	}
-	
+
 	protected static int floorInset(float original, float margin) {
 		return Mth.floor(original - (2 * margin));
 	}
-	
+
 	protected static int floorHalf(float original) {
 		return PlacementMethods.floorMult(original, 0.5F);
 	}
-	
+
 	protected static int floorMult(float original, float scalar) {
 		return Mth.floor(original * scalar);
 	}
-	
+
 	/* Factory */
-	
+
 	/**
 	 * Class for initializing {@link IPlacementMethods} based on unvarying parameters.
-	 * 
+	 *
 	 * @author Malcolm Riley
 	 */
 	public static class Factory {
-		
-		private Factory() { }
-		
+
+		private Factory() {}
+
 		public static IPlacementMethod horizontallyProportional(float proportion, int margin) {
 			return (self, other) -> PlacementMethods.horizontallyProportional(self, other, proportion, margin);
 		}
-		
+
 		public static IPlacementMethod verticallyProportional(float proportion, int margin) {
 			return (self, other) -> PlacementMethods.verticallyProportional(self, other, proportion, margin);
 		}
-		
+
 		public static IPlacementMethod proportionalTo(float proportion, int margin) {
 			return Factory.proportionalTo(proportion, proportion, margin, margin);
 		}
-		
+
 		public static IPlacementMethod proportionalTo(float horizontal, float vertical, int horizontalMargin, int verticalMargin) {
 			return (self, other) -> PlacementMethods.proportionalTo(self, other, horizontal, vertical, horizontalMargin, verticalMargin);
 		}
-		
+
 		public static IPlacementMethod insetFixed(int margin) {
 			return Factory.insetFixed(margin, margin);
 		}
-		
+
 		public static IPlacementMethod insetFixed(int xMargin, int yMargin) {
 			return (self, other) -> PlacementMethods.insetFixed(self, other, xMargin, yMargin);
 		}
-		
+
 		public static IPlacementMethod insetFixed(int left, int right, int top, int bottom) {
 			return (self, other) -> {
 				PlacementMethods.offsetFixed(self, other, left, top);
 				self.setDimensions(other.getWidth() - (left + right), other.getHeight() - (top + bottom));
 			};
 		}
-		
+
 		public static IPlacementMethod insetRelative(float margin) {
 			return Factory.insetRelative(margin, margin);
 		}
-		
+
 		public static IPlacementMethod insetRelative(float xMargin, float yMargin) {
 			return (self, other) -> PlacementMethods.insetRelative(self, other, xMargin, yMargin);
 		}
-		
+
 		public static IPlacementMethod insetRelative(float left, float right, float top, float bottom) {
 			return (self, other) -> {
 				PlacementMethods.offsetRelative(self, other, left, top);
 				self.setDimensions(PlacementMethods.floorMult(other.getWidth(), left + right), PlacementMethods.floorMult(other.getHeight(), top + bottom));
 			};
 		}
-		
+
 		public static IPlacementMethod offsetFixed(int offset) {
 			return Factory.offsetFixed(offset, offset);
 		}
-		
+
 		public static IPlacementMethod offsetFixed(int xOffset, int yOffset) {
 			return (self, other) -> PlacementMethods.offsetFixed(self, other, xOffset, yOffset);
 		}
-		
+
 		public static IPlacementMethod offsetRelative(float offset) {
 			return Factory.offsetRelative(offset, offset);
 		}
-		
+
 		public static IPlacementMethod offsetRelative(float xOffset, float yOffset) {
 			return (self, other) -> PlacementMethods.offsetRelative(self, other, xOffset, yOffset);
 		}
-		
+
 	}
 
 }

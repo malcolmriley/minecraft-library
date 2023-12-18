@@ -1,6 +1,11 @@
 MIT License
 
-Copyright (c) 2022 Malcolm Riley
+The following is a copy of the MIT License, which applies to the code
+assets of this repository.
+
+=======================================================================
+
+Copyright (c) 2023 Malcolm Riley
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

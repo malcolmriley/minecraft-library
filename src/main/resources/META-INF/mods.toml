@@ -1,22 +1,30 @@
+# Mandatory Metadata Fields
 modLoader="javafml"
-loaderVersion="[40,)"
-license="MIT"
-issueTrackerURL="https://github.com/malcolmriley/minecraft-library/issues"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
 
 [[mods]]
-modId="paragon_library"
-version="${file.jarVersion}"
-displayName="The Paragon's Stash"
-logoFile="logo.png"
-credits="The_Paragon"
-authors="Malcolm Riley"
-description='''
-Yes, you guessed it, it's yet another library mod. This time it's for The_Paragon's various mods.
-'''
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+#logoFile="paragon_stash.png"
+credits="${mod_credits}"
+authors="${mod_authors}"
 
-[[dependencies.paragon_library]]
-    modId="forge"
+#updateJSONURL="https://change.me.example.invalid/updates.json"
+#displayURL="https://change.me.to.your.mods.homepage.example.invalid/"
+
+description='''${mod_description}'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    mandatory=true #mandatory
+    versionRange="${neo_version_range}"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.${mod_id}]]
+    modId="minecraft"
     mandatory=true
-    versionRange="[40.1,)"
+    versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"

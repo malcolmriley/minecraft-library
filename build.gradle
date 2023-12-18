@@ -1,84 +1,47 @@
-buildscript {
-	repositories {
-		maven { url = 'https://maven.minecraftforge.net' }
-        maven { url = 'https://maven.parchmentmc.org' }
-		mavenCentral()
-	}
-	dependencies {
-		classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: "${forgegradle_version}", changing: true
-        classpath 'org.parchmentmc:librarian:1.+'
-	}
-}
-
 plugins {
+	id 'java-library'
 	id 'eclipse'
+	id 'idea'
 	id 'maven-publish'
+	id 'net.neoforged.gradle.userdev' version '7.0.57'
 }
 
-apply plugin: 'net.minecraftforge.gradle'
-apply plugin: 'org.parchmentmc.librarian.forgegradle'
-apply plugin: 'eclipse'
+version = mod_version
+group = mod_group_id
+
+repositories {
+	mavenLocal()
+}
+
+base {
+	archivesName = "${mod_jar}-${mod_version}-${mod_loader}-${minecraft_version}"
+}
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-archivesBaseName = "${mod_name}-Forge"
-version = "${minecraft_version}-${mod_version}";
 
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-minecraft {
-	mappings channel: "${mappings_channel}", version: "${mappings_version}"
+runs {
+	configureEach {
+		systemProperty 'forge.logging.markers', 'REGISTRIES'
+		systemProperty 'forge.logging.console.level', 'debug'
 
-	runs {
-		client {
-			workingDirectory project.file('run')
-			property 'forge.logging.markers', 'REGISTRIES'
-			property 'forge.logging.console.level', 'debug'
-			property 'forge.enabledGameTestNamespaces', "${mod_id}"
+		modSource project.sourceSets.main
+	}
 
-			mods {
-				mainproject {
-					source sourceSets.main
-				}
-			}
-		}
+	client {
+		systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+	}
 
-		server {
-			workingDirectory project.file('run')
-			property 'forge.logging.markers', 'REGISTRIES'
-			property 'forge.logging.console.level', 'debug'
-			property 'forge.enabledGameTestNamespaces', "${mod_id}"
+	server {
+		systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+		programArgument '--nogui'
+	}
+	
+	gameTestServer {
+		systemProperty 'forge.enabledGameTestNamespaces', project.mod_id
+	}
 
-			mods {
-				mainproject {
-					source sourceSets.main
-				}
-			}
-		}
-
-		gameTestServer {
-			workingDirectory project.file('run')
-			property 'forge.logging.markers', 'REGISTRIES'
-			property 'forge.logging.console.level', 'debug'
-			property 'forge.enabledGameTestNamespaces', "${mod_id}"
-
-			mods {
-				mainproject {
-					source sourceSets.main
-				}
-			}
-		}
-
-		data {
-			workingDirectory project.file('run')
-			property 'forge.logging.markers', 'REGISTRIES'
-			property 'forge.logging.console.level', 'debug'
-			args '--mod', "${mod_id}", '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-
-			mods {
-				mainproject {
-					source sourceSets.main
-				}
-			}
-		}
+	data {
+		programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
 	}
 }
 
@@ -89,43 +52,49 @@ sourceSets.main.resources {
 }
 
 sourceSets.main.java {
-	exclude "paragon/minecraft/${packagename}/generators".toString()
+	// TODO: Determine alternative, as in NeoForge this excludes in dev space as well.
+	// exclude "${mod_package}/generators".toString()
 	exclude '*.DS_Store*'
 }
 
-repositories {
-
-}
 
 dependencies {
-	minecraft "net.minecraftforge:forge:${forge_version}".toString()
+	implementation "net.neoforged:neoforge:${neo_version}"
 }
 
-jar {
-	manifest {
-		attributes([
-			"Specification-Title": "${mod_id}",
-			"Specification-Vendor": "${mod_vendor}",
-			"Specification-Version": "1",
-			"Implementation-Title": project.name,
-			"Implementation-Version": "${version}",
-			"Implementation-Vendor" : "${mod_vendor}",
-			"Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-		])
+tasks.withType(ProcessResources).configureEach {
+	var replaceProperties = [
+			minecraft_version:	minecraft_version,
+			minecraft_version_range: minecraft_version_range,
+			neo_version: neo_version,
+			neo_version_range: neo_version_range,
+			loader_version_range: loader_version_range,
+			mod_id: mod_id,
+			mod_name: mod_name,
+			mod_license: mod_license,
+			mod_version: mod_version,
+			mod_authors: mod_authors,
+			mod_credits: mod_credits,
+			mod_description: mod_description,
+			pack_format_number: pack_format_number,
+	]
+	inputs.properties replaceProperties
+
+	filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+		expand replaceProperties + [project: project]
 	}
 }
 
-jar.finalizedBy('reobfJar')
-
+// Example configuration to allow publishing using the maven-publish plugin
 publishing {
 	publications {
-		mavenJava(MavenPublication) {
-			artifact jar
+		register('mavenJava', MavenPublication) {
+			from components.java
 		}
 	}
 	repositories {
 		maven {
-			url "file://${project.projectDir}/mcmodsrepo"
+			url "file://${project.projectDir}/repo"
 		}
 	}
 }

@@ -6,7 +6,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 public interface IPlaceableGuiElement extends IDynamicGuiElement {
-	
+
 	public Optional<IPlacementMethod> getPlacementMethod();
 
 	public default void updatePlacement(@Nullable IGuiElement other) {

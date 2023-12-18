@@ -18,8 +18,8 @@ import com.mojang.serialization.Codec;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import paragon.minecraft.library.registration.IEventBusListener;
 import paragon.minecraft.library.utilities.Require;
 import paragon.minecraft.library.utilities.Utilities;
@@ -28,7 +28,7 @@ import paragon.minecraft.library.utilities.Utilities;
  * This class enables {@link PlayerDataManager} to persist data to disk.
  * <p>
  * Handles serialization via a provided {@link Codec}, but does not perform client-server synchronization. For that, see {@link SyncHelper}.
- * 
+ *
  * @author Malcolm Riley
  * @param <T> The type of data.
  */
@@ -41,7 +41,7 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 
 	/* Shared Constants */
 	protected static final String DEFAULT_SUFFIX = ".gznbt";
-	
+
 	public PersistenceHelper(@Nonnull final PlayerDataManager<T> manager, @Nonnull final Codec<T> codec, @Nonnull final String name) {
 		this.MANAGER = manager;
 		this.CODEC = Objects.requireNonNull(codec, "Cannot initialize PersistenceHelper with null codec!");
@@ -58,7 +58,7 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 	@SubscribeEvent
 	public void onPlayerLoad(final PlayerEvent.LoadFromFile event) {
 		// Clear held data
-		this.MANAGER.clearFor(event.getPlayer());
+		this.MANAGER.clearFor(event.getEntity());
 
 		// Load data from additional file
 		final File file = this.getFileFor(event.getPlayerDirectory(), event.getPlayerUUID());
@@ -66,7 +66,7 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 			try (InputStream stream = new FileInputStream(file)) {
 				final CompoundTag tag = NbtIo.readCompressed(stream);
 				final T instance = this.CODEC.decode(NbtOps.INSTANCE, tag).getOrThrow(false, this::printError).getFirst();
-				this.MANAGER.put(Utilities.Players.getUUID(event.getPlayer()), instance);
+				this.MANAGER.put(Utilities.Players.getUUID(event.getEntity()), instance);
 			}
 			catch (IOException exception) {
 				this.printException(exception);
@@ -82,7 +82,7 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 	@SubscribeEvent
 	public void onPlayerSave(final PlayerEvent.SaveToFile event) {
 		// Persist data to additional file
-		final Optional<T> data = this.MANAGER.tryGetFor(event.getPlayer());
+		final Optional<T> data = this.MANAGER.tryGetFor(event.getEntity());
 		if (data.isPresent()) {
 			final File file = this.getFileFor(event.getPlayerDirectory(), event.getPlayerUUID());
 			try (OutputStream stream = new FileOutputStream(file)) {
@@ -109,12 +109,12 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 			.append(PersistenceHelper.DEFAULT_SUFFIX)
 			.toString();
 	}
-	
+
 	protected void printException(String operation, Exception exception) {
 		this.printError(operation);
 		this.printException(exception);
 	}
-	
+
 	protected void printError(String operation) {
 		LogManager.getLogger().error(this.buildErrorMessage(operation));
 	}
@@ -122,13 +122,15 @@ public class PersistenceHelper<T> implements IEventBusListener.Simple {
 	protected void printException(Exception exception) {
 		LogManager.getLogger().error(exception);
 	}
-	
+
 	protected String buildErrorMessage(String operation) {
 		return new StringBuilder()
 			.append("Exception occurred while attempting to ")
 			.append(operation)
 			.append(" persistent player data for type ")
-			.append("\"").append(this.NAME).append("\": ")
+			.append("\"")
+			.append(this.NAME)
+			.append("\": ")
 			.toString();
 	}
 

@@ -7,7 +7,7 @@ import net.minecraft.world.level.block.Block;
 
 /**
  * Extension of the simple {@link BlockItem} that takes a {@link Supplier} instead of a direct block reference.
- * 
+ *
  * @author Malcolm Riley
  */
 public class LazyBlockItem extends BlockItem {

@@ -1,10 +1,10 @@
 package paragon.minecraft.library.registration;
 
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 /**
  * Interface specification for classes that listen to {@link IEventBus}. Good for classes that themselves contain event-listening instances,
@@ -52,10 +52,10 @@ public interface IEventBusListener {
 	 * <p>
 	 * Overriding {@link #registerTo(IEventBus)} to perform all necessary sub-registrations (such as in the case of a class holding references to multiple event listeners)
 	 * is also recommended, but not necessary as this interface inherits {@link Simple}.
-	 * 
+	 *
 	 * @author Malcolm Riley
 	 */
-	public static interface SelfRegistering extends Simple {
+	public static interface ISelfRegistering extends Simple {
 
 		/**
 		 * This method should be used to self-register to the appropriate {@link IEventBus} during mod construction.
@@ -72,11 +72,11 @@ public interface IEventBusListener {
 	 *
 	 * @author Malcolm Riley
 	 */
-	public static interface Forge extends SelfRegistering {
+	public static interface Forge extends ISelfRegistering {
 
 		@Override
 		public default void register() {
-			this.registerTo(MinecraftForge.EVENT_BUS);
+			this.registerTo(NeoForge.EVENT_BUS);
 		}
 
 	}
@@ -86,7 +86,7 @@ public interface IEventBusListener {
 	 *
 	 * @author Malcolm Riley
 	 */
-	public static interface FML extends SelfRegistering {
+	public static interface FML extends ISelfRegistering {
 
 		@Override
 		public default void register() {

@@ -10,7 +10,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -23,7 +22,6 @@ import javax.annotation.Nullable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
@@ -32,18 +30,20 @@ import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.Vec3i;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.Mth;
 import net.minecraft.util.ToFloatFunction;
 import net.minecraft.world.Container;
@@ -54,7 +54,6 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -68,14 +67,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.network.NetworkHooks;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.RegistryManager;
-import net.minecraftforge.registries.RegistryObject;
-import paragon.minecraft.library.storage.ICodecProvider;
+import net.neoforged.neoforge.network.NetworkHooks;
 
 /**
  * Container class for various static utility functions.
@@ -85,20 +77,20 @@ import paragon.minecraft.library.storage.ICodecProvider;
 public final class Utilities {
 
 	private Utilities() {}
-	
+
 	/**
 	 * Container class for {@link Codec} related static utility functions.
 	 */
 	public static final class Codecs {
-		
-		private Codecs() { }
-		
+
+		private Codecs() {}
+
 		/**
 		 * Attempts to decode the provided {@link CompoundTag} using {@link NbtOps#INSTANCE} without accepting partial results and using the provided {@link Consumer} to accept any errors.
 		 * <p>
 		 * If the aggregate decode operation succeeds, the result will be placed in the returned {@link Optional}. If the aggregate operation fails or if the provided data was {@code null},
 		 * an empty {@link Optional} will be returned instead.
-		 * 
+		 *
 		 * @param <T> The result type
 		 * @param codec - The {@link Codec} to use
 		 * @param tag - The {@link CompoundTag} to decode
@@ -108,13 +100,13 @@ public final class Utilities {
 		public static <T> Optional<T> decodeNBT(@Nonnull final Codec<T> codec, @Nullable final CompoundTag tag, @Nonnull final Consumer<String> onError) {
 			return Codecs.decodeUsing(codec, tag, NbtOps.INSTANCE, onError);
 		}
-		
+
 		/**
 		 * Attepts to decode the provided data type using the provided {@link DynamicOps} without partial results and using the provided {@link Consumer} to accept any errors.
 		 * <p>
 		 * If the aggregate decode operation succeeds, the result will be placed in the returned {@link Optional}. If the aggregate operation fails or if the provided data was {@code null},
 		 * an empty {@link Optional} will be returned instead.
-		 * 
+		 *
 		 * @param <T> The result type
 		 * @param <D> The data type
 		 * @param codec - The {@link Codec} to use
@@ -132,10 +124,10 @@ public final class Utilities {
 				.mapFirst(Optional::ofNullable)
 				.getFirst();
 		}
-		
+
 		/**
 		 * Creates a {@link Codec} for a {@link Set} of the provided inner {@link Codec} type.
-		 * 
+		 *
 		 * @param <T> The inner type
 		 * @param innerCodec - The {@link Codec} to use for the inner type
 		 * @return A {@link Codec} for a {@link Set} of the inner type.
@@ -143,154 +135,50 @@ public final class Utilities {
 		public static <T> Codec<Set<T>> setOf(@Nonnull final Codec<T> innerCodec) {
 			return Codec.list(innerCodec).xmap(Utilities.Misc::intoSet, List::copyOf);
 		}
-		
-		/**
-		 * Creates a {@link Codec} for an {@link IForgeRegistryEntry} subtype that itself has subtypes that each provide their own {@link Codec}.
-		 * 
-		 * @param <T> The base type of the {@link Codec}
-		 * @param key - The {@link ResourceKey} for the associated registry
-		 * @return A {@link Codec} that looks up the individual instance from the active registry, and then returns the {@link Codec} provided by that type.
-		 */
-		public static <T extends ICodecProvider<T> & IForgeRegistryEntry<T>> Codec<T> byIDWithSubtypeDispatch(ResourceKey<? extends Registry<T>> key) {
-			return Codecs.activeRegistry(key).dispatch(Function.identity(), T::getCodec);
-		}
-		
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link Set} of the desired type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, Set<T>>> tagOrIDSet(@Nonnull final ResourceKey<? extends Registry<T>> key) {
-			return Codecs.tagOrIDSet(key, null);
-		}
 
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link Set} of the desired type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID list field named {@code ids}.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @param prefix - An optional {@link String} prefix to prepend to each field
-		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, Set<T>>> tagOrIDSet(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
-			return Codecs.tagOrOther(key, Codecs.setOf(Codecs.activeRegistry(key)), prefix, "ids");
-		}
-		
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, List<T>>> tagOrIDList(@Nonnull final ResourceKey<? extends Registry<T>> key) {
-			return Codecs.tagOrIDList(key, null);
-		}
-		
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to a {@link List} of the desired type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID list field named {@code ids}.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @param prefix - An optional {@link String} prefix to prepend to each field
-		 * @return A {@link Codec} accepting either {@link TagKey} or a list of {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, List<T>>> tagOrIDList(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
-			return Codecs.tagOrOther(key, Codec.list(Codecs.activeRegistry(key)), prefix, "ids");
-		}
-		
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code tag}, or for a {@link ResourceLocation} ID field named {@code id}.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @return A {@link Codec} accepting either {@link TagKey} or {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key) {
-			return Codecs.tagOrID(key, null);
-		}
-		
-		/**
-		 * Returns a {@link Codec} that maps to either a {@link TagKey} of the desired type, or directly to the type via the active registry access.
-		 * <p>
-		 * The codec will look for a {@link TagKey} field named {@code <PREFIX>_tag}, or for a {@link ResourceLocation} ID field named {@code <PREFIX>_id}, in both cases using
-		 * the provided {@link String} prefix. If the prefix is null, the fields will simply be {@code tag} and {@code id} respectively.
-		 * 
-		 * @param <T> - The desired type
-		 * @param key - The {@link ResourceKey} corresponding to the registry of that type
-		 * @param prefix - An optional {@link String} prefix to prepend to each field
-		 * @return A {@link Codec} accepting either {@link TagKey} or {@link ResourceLocation} id for the desired type.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<Either<TagKey<T>, T>> tagOrID(@Nonnull final ResourceKey<? extends Registry<T>> key, @Nullable final String prefix) {
-			return Codecs.tagOrOther(key, Codecs.activeRegistry(key), prefix, "id");
-		}
-		
-		/**
-		 * Returns a {@link Codec} that samples the active registry for instances by {@link ResourceLocation} id.
-		 * 
-		 * @param <T> The type contained in the registry
-		 * @param key - The {@link ResourceKey} for the registry
-		 * @return A {@link Codec} that accesses the active registry.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Codec<T> activeRegistry(ResourceKey<? extends Registry<T>> key) {
-			return RegistryManager.ACTIVE.getRegistry(key).getCodec();
-		}
-		
 		/* Internal Methods */
-		
+
 		protected static final <T, K> Codec<Either<TagKey<T>, K>> tagOrOther(@Nonnull final ResourceKey<? extends Registry<T>> key, Codec<K> other, final String prefix, final String otherSuffix) {
 			return Codec.mapEither(TagKey.codec(key).fieldOf(optionalPrefix(prefix, "tag")), other.fieldOf(optionalPrefix(prefix, otherSuffix))).codec();
 		}
-		
+
 		protected static final String optionalPrefix(@Nullable String prefix, @Nonnull String suffix) {
 			if (Objects.isNull(prefix)) {
 				return suffix;
 			}
 			return Strings.name(prefix, suffix);
 		}
-		
+
 	}
-	
+
 	/**
 	 * Container class for {@link Player} related static utility functions.
 	 */
 	public static final class Players {
-		
-		private Players() { }
-		
+
+		private Players() {}
+
 		/**
 		 * Tries to get the {@link UUID} from the {@link GameProfile} of the provided {@link Player}, returning it as an {@link Optional}
 		 * if it exists and the provied {@link Player} reference is not {@code null}.
-		 * 
+		 *
 		 * @param player - The {@link Player} in question
 		 * @return An {@link Optional} containing the stable {@link UUID} of the provided {@link Player}, or an empty one.
 		 */
 		public static Optional<UUID> tryGetUUID(@Nullable final Player player) {
 			return (Objects.nonNull(player)) ? Optional.ofNullable(Players.getUUID(player)) : Optional.empty();
 		}
-		
+
 		/**
 		 * Returns the {@link UUID} of associated with the {@link GameProfile} of the provided {@link Player}.
-		 * 
+		 *
 		 * @param player - The {@link Player} in question
 		 * @return The stable {@link UUID} of that {@link Player}.
 		 */
 		public static UUID getUUID(@Nonnull final Player player) {
 			return player.getGameProfile().getId();
 		}
-		
+
 	}
 
 	/**
@@ -338,17 +226,17 @@ public final class Utilities {
 		}
 
 	}
-	
+
 	/**
 	 * Container for {@link BlockState}-related static helper methods.
 	 */
 	public static final class States {
-		
-		private States() { }
-		
+
+		private States() {}
+
 		/**
 		 * Convenience method that returns whether the {@link BlockState} below the provided {@link BlockPos} has a solid upward surface, via {@link BlockState#isSolidSide(LevelReader, BlockPos, Direction)}.
-		 * 
+		 *
 		 * @param world - The {@link LevelReader} to use for {@link BlockState} access
 		 * @param position - The position above the queried block
 		 * @return Whether the {@link BlockState} below the provided {@link BlockPos} has a solid upward surface.
@@ -357,12 +245,12 @@ public final class Utilities {
 			BlockPos below = position.below();
 			return world.getBlockState(below).isFaceSturdy(world, below, Direction.UP);
 		}
-		
+
 		/**
 		 * Deduces the horizontal-only facing from the provided {@link BlockPlaceContext}.
 		 * <p>
 		 * If the facing is {@value Direction#UP} or {@value Direction#DOWN}, returns the opposite of {@link BlockPlaceContext#getPlacementHorizontalFacing()}; otherwise returns {@link BlockPlaceContext#getFace()}.
-		 * 
+		 *
 		 * @param context - The context to deduce the facing from
 		 * @return The block placement facing direction.
 		 */
@@ -370,16 +258,16 @@ public final class Utilities {
 			Direction face = context.getClickedFace();
 			return (face == Direction.UP) || (face == Direction.DOWN) ? context.getNearestLookingDirection() : face.getOpposite();
 		}
-		
+
 	}
 
 	public static class Misc {
-		
-		private Misc() { }
-		
+
+		private Misc() {}
+
 		/**
 		 * Returns the sum of the values yielded by applying the provided {@link ToIntFunction} to each element of the provided {@link Collection}.
-		 * 
+		 *
 		 * @param <T> The type contained in the {@link Collection}
 		 * @param collection - The {@link Collection} to examine
 		 * @param function - A {@link ToIntFunction} to apply
@@ -395,7 +283,7 @@ public final class Utilities {
 
 		/**
 		 * Returns the sum of the values yielded by applying the provided {@link ToFloatFunction} to each element of the provided {@link Collection}.
-		 * 
+		 *
 		 * @param <T> The type contained in the {@link Collection}
 		 * @param collection - The {@link Collection} to examine
 		 * @param function - A {@link ToFloatFunction} to apply
@@ -403,16 +291,16 @@ public final class Utilities {
 		 */
 		public static <T> float floatSum(Collection<T> collection, ToFloatFunction<T> function) {
 			float sum = 0;
-			for(T instance : collection) {
+			for (T instance : collection) {
 				sum += function.apply(instance);
 			}
 			return sum;
 		}
-		
+
 		/**
 		 * Wraps the provided {@link Collection} subtype into an {@link Optional}. If the provided {@link Collection} is {@code null} or empty,
 		 * the returned {@link Optional} will also be empty.
-		 * 
+		 *
 		 * @param <T> - The type contained in the {@link Collection}
 		 * @param <C> - The {@link Collection} type
 		 * @param collection - The {@link Collection} instance
@@ -421,14 +309,14 @@ public final class Utilities {
 		public static <T, C extends Collection<T>> Optional<C> wrap(@Nullable final C collection) {
 			return Misc.isNullOrEmpty(collection) ? Optional.empty() : Optional.of(collection);
 		}
-		
+
 		/**
 		 * Converts the provided {@link Collection} into an unmodifiable {@link List}.
 		 * <p>
 		 * If the provided {@link Collection} is {@code null} or empty, the returned {@link List} will simply be empty.
 		 * <p>
 		 * <b> Important! </b> While the provided {@link Collection} may itself be {@code null}, it may not contain any {@code null} elements.
-		 * 
+		 *
 		 * @param <T> The type contained in the {@link Collection}
 		 * @param collection - The {@link Collection} to convert
 		 * @return An unmodifiable {@link List} of the elements in the provided {@link Collection}.
@@ -436,14 +324,14 @@ public final class Utilities {
 		public static <T> List<T> intoUnmodifiableList(@Nullable final Collection<T> collection) {
 			return Misc.isNullOrEmpty(collection) ? List.of() : List.copyOf(collection);
 		}
-		
+
 		/**
 		 * Converts the provided {@link Collection} of values into a new {@link Set}, using the provided {@link Supplier} as a provider of the set.
 		 * <p>
 		 * If the provided {@link Collection} is {@code null}, an empty {@link Set} will be returned.
 		 * <p>
 		 * By default, this method creates a new {@link HashSet} to use. To specify the type of {@link Set} or use an existing one, see {@link #intoSet(Collection, Set)}.
-		 * 
+		 *
 		 * @param <T> The type contained in the {@link Collection}
 		 * @param collection - The {@link Collection} to convert
 		 * @return A {@link Set}, by definition containing all unique elements of the provided {@link Collection}.
@@ -452,7 +340,7 @@ public final class Utilities {
 		public static <T> Set<T> intoSet(@Nullable final Collection<T> collection) {
 			return Misc.intoSet(collection, null);
 		}
-		
+
 		/**
 		 * Converts the provided {@link Collection} of values into a new {@link Set}, using the provided {@link Supplier} as a provider of the set.
 		 * <p>
@@ -460,7 +348,7 @@ public final class Utilities {
 		 * a new {@link HashSet} will be created and filled.
 		 * <p>
 		 * If no existing {@link Set} exists or if no or specific {@link Set} implementation is required, consider {@link #intoSet(Collection)} for simplicity.
-		 * 
+		 *
 		 * @param <T> The type contained in the {@link Collection}
 		 * @param collection - The {@link Collection} to convert
 		 * @param existingSet - An existing {@link Set} to use, or {@code null}.
@@ -474,10 +362,10 @@ public final class Utilities {
 			}
 			return set;
 		}
-		
+
 		/**
 		 * Returns {@code true} if the provided {@link Collection} is {@code null} or returns true for {@link Collection#isEmpty()}.
-		 * 
+		 *
 		 * @param collection - The {@link Collection} to examine
 		 * @return Whether the provided reference is {@code null} or is an empty {@link Collection}.
 		 */
@@ -487,36 +375,39 @@ public final class Utilities {
 
 		/**
 		 * Invokes the provided {@link Supplier} and applies the provided {@link Consumer} if the object returned by the provided {@link Supplier} is non-{@code null}.
-		 * 
+		 *
 		 * @param <T> The instance type
 		 * @param initializer - The {@link Supplier} to invoke
 		 * @param transformer - The {@link Consumer} to invoke if the instance returned by the {@link Supplier} is non-null
 		 * @return The instance returned by the provided {@link Supplier}, possibly transformed by the provided {@link Consumer}.
 		 */
-		public static <T> @Nullable T acceptIfNonNull(final Supplier<T> initializer, Consumer<T> transformer) {
+		@Nullable
+		public static <T> T acceptIfNonNull(final Supplier<T> initializer, Consumer<T> transformer) {
 			final T instance = initializer.get();
 			if (Objects.nonNull(instance)) {
 				transformer.accept(instance);
 			}
 			return instance;
 		}
-		
+
 		/**
 		 * Tries to return a random element from the provided {@link List}.
-		 * <p> 
-		 * <li> If the {@link List} is empty or {@code null}, returns {@link Optional#empty()}. </li>
-		 * <li> If the {@link List} contains exactly one item, simply returns it. </li>
-		 * <li> Otherwise, selects a random element from the {@link List} using the provided {@link Random} instance.
-		 * 
+		 * <p>
+		 * <li>If the {@link List} is empty or {@code null}, returns {@link Optional#empty()}.</li>
+		 * <li>If the {@link List} contains exactly one item, simply returns it.</li>
+		 * <li>Otherwise, selects a random element from the {@link List} using the provided {@link Random} instance.
+		 *
 		 * @param <T> The type of elements in the provided {@link List}.
 		 * @param RNG - The {@link Random} instance to use for random selection (if applicable)
 		 * @param elements - A possibly-{@code null} list of elements.
 		 * @return An {@link Optional} containing a random element from the {@link List}, the only element, or {@link Optional#empty()} as described above.
 		 */
 		public static <T> Optional<T> trySelectFrom(@Nonnull final Random RNG, @Nullable final List<T> elements) {
-			if (Objects.isNull(elements)) return Optional.empty();
+			if (Objects.isNull(elements)) {
+				return Optional.empty();
+			}
 			final int size = elements.size();
-			return switch(size) {
+			return switch (size) {
 				case 0 -> Optional.empty();
 				case 1 -> Optional.ofNullable(elements.get(0));
 				default -> Optional.ofNullable(elements.get(RNG.nextInt(size)));
@@ -535,38 +426,38 @@ public final class Utilities {
 		public static <T> boolean sameContents(Optional<T> first, Optional<T> second) {
 			return Objects.equals(first.orElse(null), second.orElse(null));
 		}
-		
+
 		/**
-		 * Returns a {@link Stream} over the non-null references held by the provided {@link RegistryObjects}.
-		 * 
-		 * @param <T> The type held by the provided {@link RegistryObject}
-		 * @param holders - The {@link RegistryObject} holders to use
-		 * @return A stream over the non-null references held by those {@link RegistryObject}.
+		 * Returns a {@link Stream} over the non-null references held by the provided {@link Holders}.
+		 *
+		 * @param <T> The type held by the provided {@link Holder}
+		 * @param holders - The {@link Holder} holders to use
+		 * @return A stream over the non-null references held by those {@link Holder}.
 		 */
 		@SafeVarargs // Iterate and map
-		public static <T extends IForgeRegistryEntry<T>> Stream<T> streamPresent(RegistryObject<T> ... holders) {
-			return Misc.filterRegistryObjectStream(Stream.of(holders));
+		public static <T> Stream<T> streamPresent(Holder<T>... holders) {
+			return Misc.filterHolderStream(Stream.of(holders));
 		}
-		
+
 		/**
 		 * Returns a {@link Stream} over the non-null references held by the provided {@link Collection}.
-		 * 
-		 * @param <T> The type held by the provided {@link RegistryObject}
-		 * @param holder - The {@link Collection} of {@link RegistryObject} holders to use
-		 * @return A stream over the non-null references held by those {@link RegistryObject}.
+		 *
+		 * @param <T> The type held by the provided {@link Holder}
+		 * @param holders - The {@link Collection} of {@link Holder} holders to use
+		 * @return A stream over the non-null references held by those {@link Holder}.
 		 */
-		public static <T extends IForgeRegistryEntry<T>> Stream<T> streamPresent(Collection<RegistryObject<T>> holder) {
-			return Misc.filterRegistryObjectStream(holder.stream());
+		public static <T> Stream<T> streamPresent(Collection<Holder<T>> holders) {
+			return Misc.filterHolderStream(holders.stream());
 		}
-		
+
 		/* Internal Methods */
-		
-		protected static <T extends IForgeRegistryEntry<T>> Stream<T> filterRegistryObjectStream(Stream<RegistryObject<T>> stream) {
-			return stream.filter(RegistryObject::isPresent).map(RegistryObject::get);
+
+		protected static <T> Stream<T> filterHolderStream(Stream<Holder<T>> stream) {
+			return stream.filter(Holder::isBound).map(Holder::value);
 		}
 
 	}
-	
+
 	/**
 	 * Container class for NBT ({@link CompoundTag})-related static helper methods.
 	 */
@@ -584,6 +475,8 @@ public final class Utilities {
 		public static final INBTReader<int[]> GET_INT_ARRAY = (source, key) -> source.getIntArray(key);
 		public static final INBTReader<long[]> GET_LONG_ARRAY = (source, key) -> source.getLongArray(key);
 		public static final INBTReader<Boolean> GET_BOOLEAN = (source, key) -> source.getBoolean(key);
+		public static final INBTReader<ResourceLocation> GET_RESOURCE = NBT.makeStringReader(ResourceLocation::new);
+		public static final INBTReader<Component> GET_COMPONENT = NBT.makeStringReader(Component.Serializer::fromJson);
 
 		public static final INBTWriter<Byte> PUT_BYTE = (destination, key, value) -> destination.putByte(key, value);
 		public static final INBTWriter<Short> PUT_SHORT = (destination, key, value) -> destination.putShort(key, value);
@@ -597,55 +490,57 @@ public final class Utilities {
 		public static final INBTWriter<int[]> PUT_INT_ARRAY = (destination, key, value) -> destination.putIntArray(key, value);
 		public static final INBTWriter<long[]> PUT_LONG_ARRAY = (destination, key, value) -> destination.putLongArray(key, value);
 		public static final INBTWriter<Boolean> PUT_BOOLEAN = (destination, key, value) -> destination.putBoolean(key, value);
-		
-		private NBT() { }
-		
+		public static final INBTWriter<ResourceLocation> PUT_RESOURCE = NBT.makeStringWriter(ResourceLocation::toString);
+		public static final INBTWriter<Component> PUT_COMPONENT = NBT.makeStringWriter(Component.Serializer::toJson);
+
+		private NBT() {}
+
 		@SuppressWarnings("unchecked") // If reader exists, cast is safe.
 		public static <T> Optional<INBTReader<T>> tryGetReaderForType(int type) {
 			INBTReader<?> discovered = NBT.readerForType(type);
-			return Objects.nonNull(discovered) ? Optional.of((INBTReader<T>)discovered) : Optional.empty();
+			return Objects.nonNull(discovered) ? Optional.of((INBTReader<T>) discovered) : Optional.empty();
 		}
-		
+
 		@SuppressWarnings("unchecked") // If writer exists, cast is safe.
 		public static <T> Optional<INBTWriter<T>> tryGetWriterForType(int type) {
 			INBTWriter<?> discovered = NBT.writerForType(type);
-			return Objects.nonNull(discovered) ? Optional.of((INBTWriter<T>)discovered) : Optional.empty();
+			return Objects.nonNull(discovered) ? Optional.of((INBTWriter<T>) discovered) : Optional.empty();
 		}
-		
+
 		public static @Nullable INBTReader<?> readerForType(int type) {
-			return switch(type) {
-				case CompoundTag.TAG_BYTE -> GET_BYTE;
-				case CompoundTag.TAG_SHORT -> GET_SHORT;
-				case CompoundTag.TAG_INT -> GET_INT;
-				case CompoundTag.TAG_LONG -> GET_LONG;
-				case CompoundTag.TAG_FLOAT -> GET_FLOAT;
-				case CompoundTag.TAG_DOUBLE -> GET_DOUBLE;
-				case CompoundTag.TAG_BYTE_ARRAY -> GET_BYTE_ARRAY;
-				case CompoundTag.TAG_STRING -> GET_STRING;
-				case CompoundTag.TAG_COMPOUND -> GET_TAG;
-				case CompoundTag.TAG_INT_ARRAY -> GET_INT_ARRAY;
-				case CompoundTag.TAG_LONG_ARRAY -> GET_LONG_ARRAY;
+			return switch (type) {
+				case Tag.TAG_BYTE -> GET_BYTE;
+				case Tag.TAG_SHORT -> GET_SHORT;
+				case Tag.TAG_INT -> GET_INT;
+				case Tag.TAG_LONG -> GET_LONG;
+				case Tag.TAG_FLOAT -> GET_FLOAT;
+				case Tag.TAG_DOUBLE -> GET_DOUBLE;
+				case Tag.TAG_BYTE_ARRAY -> GET_BYTE_ARRAY;
+				case Tag.TAG_STRING -> GET_STRING;
+				case Tag.TAG_COMPOUND -> GET_TAG;
+				case Tag.TAG_INT_ARRAY -> GET_INT_ARRAY;
+				case Tag.TAG_LONG_ARRAY -> GET_LONG_ARRAY;
 				default -> null;
 			};
 		}
-		
+
 		public static @Nullable INBTWriter<?> writerForType(int type) {
-			return switch(type) {
-				case CompoundTag.TAG_BYTE -> PUT_BYTE;
-				case CompoundTag.TAG_SHORT -> PUT_SHORT;
-				case CompoundTag.TAG_INT -> PUT_INT;
-				case CompoundTag.TAG_LONG -> PUT_LONG;
-				case CompoundTag.TAG_FLOAT -> PUT_FLOAT;
-				case CompoundTag.TAG_DOUBLE -> PUT_DOUBLE;
-				case CompoundTag.TAG_BYTE_ARRAY -> PUT_BYTE_ARRAY;
-				case CompoundTag.TAG_STRING -> PUT_STRING;
-				case CompoundTag.TAG_COMPOUND -> PUT_TAG;
-				case CompoundTag.TAG_INT_ARRAY -> PUT_INT_ARRAY;
-				case CompoundTag.TAG_LONG_ARRAY -> PUT_LONG_ARRAY;
+			return switch (type) {
+				case Tag.TAG_BYTE -> PUT_BYTE;
+				case Tag.TAG_SHORT -> PUT_SHORT;
+				case Tag.TAG_INT -> PUT_INT;
+				case Tag.TAG_LONG -> PUT_LONG;
+				case Tag.TAG_FLOAT -> PUT_FLOAT;
+				case Tag.TAG_DOUBLE -> PUT_DOUBLE;
+				case Tag.TAG_BYTE_ARRAY -> PUT_BYTE_ARRAY;
+				case Tag.TAG_STRING -> PUT_STRING;
+				case Tag.TAG_COMPOUND -> PUT_TAG;
+				case Tag.TAG_INT_ARRAY -> PUT_INT_ARRAY;
+				case Tag.TAG_LONG_ARRAY -> PUT_LONG_ARRAY;
 				default -> null;
 			};
 		}
-		
+
 		/**
 		 * Method to automatically copy a number of existing fields from the source {@link CompoundTag} to the destination {@link CompoundTag}. Similar to a deep
 		 * copy of a {@link CompoundTag} but allows for optional and selective copying of held fields.
@@ -657,19 +552,19 @@ public final class Utilities {
 		 * <p>
 		 * If none of the named fields exist on the source {@link CompoundTag}, this method will not invoke the provided {@link Supplier} so the destination
 		 * may remain uninitialized (if wrapping {@link ItemStack#getOrCreateTag()} as the supplier, for instance).
-		 * 
+		 *
 		 * @param source - The {@link CompoundTag} to copy from
 		 * @param destination - A {@link Supplier} of a {@link CompoundTag} to copy to
 		 * @param fields - The names of the fields to copy.
 		 */
-		public static void autoCopyFields(@Nullable final CompoundTag source, Supplier<CompoundTag> destination, String ... fields) {
+		public static void autoCopyFields(@Nullable final CompoundTag source, Supplier<CompoundTag> destination, String... fields) {
 			if (Objects.nonNull(source)) {
 				for (String field : fields) {
 					NBT.autoCopyField(source, destination, field);
 				}
 			}
 		}
-		
+
 		/**
 		 * Attempts to automatically copy a single existing fields from the source {@link CompoundTag} to the destination {@link CompoundTag}. Similar to a deep
 		 * copy of a {@link CompoundTag} but allows for optional and selective copying of a field.
@@ -681,7 +576,7 @@ public final class Utilities {
 		 * <p>
 		 * If none of the named fields exist on the source {@link CompoundTag}, this method will not invoke the provided {@link Supplier} so the destination
 		 * may remain uninitialized (if wrapping {@link ItemStack#getOrCreateTag()} as the supplier, for instance).
-		 * 
+		 *
 		 * @param source - The {@link CompoundTag} to copy from
 		 * @param destination - A {@link Supplier} of a {@link CompoundTag} to copy to
 		 * @param field - The name of the field to copy.
@@ -694,36 +589,36 @@ public final class Utilities {
 				}
 			}
 		}
-		
+
 		public static void copyInt(final String field, @Nonnull final CompoundTag source, final Supplier<CompoundTag> destination) {
-			NBT.copyOptionalFieldUsing(field, field, source, destination, CompoundTag.TAG_INT, NBT.GET_INT, NBT.PUT_INT);
+			NBT.copyOptionalFieldUsing(field, field, source, destination, Tag.TAG_INT, NBT.GET_INT, NBT.PUT_INT);
 		}
-		
+
 		public static void copyString(final String field, @Nonnull final CompoundTag source, final Supplier<CompoundTag> destination) {
-			NBT.copyOptionalFieldUsing(field, field, source, destination, CompoundTag.TAG_STRING, NBT.GET_STRING, NBT.PUT_STRING);
+			NBT.copyOptionalFieldUsing(field, field, source, destination, Tag.TAG_STRING, NBT.GET_STRING, NBT.PUT_STRING);
 		}
-		
+
 		public static void copyTag(final String field, @Nonnull final CompoundTag source, final Supplier<CompoundTag> destination) {
-			NBT.copyOptionalFieldUsing(field, field, source, destination, CompoundTag.TAG_COMPOUND, NBT.GET_TAG, NBT.PUT_TAG);
+			NBT.copyOptionalFieldUsing(field, field, source, destination, Tag.TAG_COMPOUND, NBT.GET_TAG, NBT.PUT_TAG);
 		}
-		
+
 		public static void copyList(final String field, final byte listType, @Nonnull final CompoundTag source, final Supplier<CompoundTag> destination) {
-			NBT.copyOptionalFieldUsing(field, field, source, destination, CompoundTag.TAG_LIST, (tag, key) -> tag.getList(field, listType), (tag, key, value) -> tag.put(key, value));
+			NBT.copyOptionalFieldUsing(field, field, source, destination, Tag.TAG_LIST, (tag, key) -> tag.getList(field, listType), (tag, key, value) -> tag.put(key, value));
 		}
-		
+
 		public static void copyList(final String sourceField, final String destinationField, final byte listType, @Nonnull final CompoundTag source, final Supplier<CompoundTag> destination) {
-			NBT.copyOptionalFieldUsing(sourceField, destinationField, source, destination, CompoundTag.TAG_LIST, (tag, key) -> tag.getList(sourceField, listType), (tag, key, value) -> tag.put(key, value));
+			NBT.copyOptionalFieldUsing(sourceField, destinationField, source, destination, Tag.TAG_LIST, (tag, key) -> tag.getList(sourceField, listType), (tag, key, value) -> tag.put(key, value));
 		}
-		
+
 		/**
 		 * Safely determines whether the possibly-{@code null} {@link CompoundTag} contains a field of the provided name and type.
 		 * <p>
 		 * For this method to return {@code TRUE}, all of the following must be true:
-		 * <li> The provided {@link CompoundTag} must not be {@code null} </li>
-		 * <li> The provided {@link String} field name must not be {@code null} and must also not be empty </li>
-		 * <li> The provided {@link CompoundTag} must have a field of the provided name and type. </li>
+		 * <li>The provided {@link CompoundTag} must not be {@code null}</li>
+		 * <li>The provided {@link String} field name must not be {@code null} and must also not be empty</li>
+		 * <li>The provided {@link CompoundTag} must have a field of the provided name and type.</li>
 		 * In all other cases, this method will return {@code FALSE}.
-		 * 
+		 *
 		 * @param field - The name of the field to check for
 		 * @param tag - The {@link CompoundTag} to check
 		 * @param type - The type of the field to check for
@@ -732,83 +627,103 @@ public final class Utilities {
 		public static boolean hasField(final String field, final int type, @Nullable final CompoundTag tag) {
 			return Objects.nonNull(tag) && !Strings.isNullOrEmpty(field) && tag.contains(field, type);
 		}
-		
+
 		public static Optional<String> tryGetString(final String field, @Nullable final CompoundTag tag) {
-			return NBT.tryReadUsing(field, tag, CompoundTag.TAG_STRING, NBT.GET_STRING);
+			return NBT.tryReadUsing(field, tag, Tag.TAG_STRING, NBT.GET_STRING);
+		}
+		
+		public static Optional<ResourceLocation> tryGetResource(final String field, @Nullable final CompoundTag tag) {
+			return NBT.tryReadString(field, tag, NBT.GET_RESOURCE);
+		}
+		
+		public static Optional<Component> tryGetComponent(final String field, @Nullable final CompoundTag tag) {
+			return NBT.tryReadString(field, tag, NBT.GET_COMPONENT);
 		}
 		
 		public static Optional<CompoundTag> tryGetCompound(final String field, @Nullable final CompoundTag tag) {
 			return NBT.tryReadUsing(field, tag, CompoundTag.TAG_COMPOUND, NBT.GET_TAG);
 		}
-		
+
 		public static <T> Optional<T> tryDecode(final String field, @Nullable final CompoundTag tag, Codec<T> decoder, Consumer<String> onError) {
 			return NBT.tryGetCompound(field, tag).flatMap(found -> Codecs.decodeNBT(decoder, found, onError));
 		}
-		
+
 		public static <T> void tryEncode(final String field, @Nonnull final ItemStack stack, Codec<T> encoder, T data) {
 			NBT.tryWrite(encoder, data, dataTag -> stack.getOrCreateTag().put(field, dataTag));
 		}
-		
+
 		public static <T> void tryEncode(final String field, @Nonnull final CompoundTag tag, Codec<T> encoder, T data) {
 			NBT.tryWrite(encoder, data, dataTag -> tag.put(field, tag));
 		}
-		
+
 		public static <T> void tryEncode(@Nonnull final String field, @Nonnull final ItemStack stack, @Nonnull final Codec<T> encoder, @Nonnull final Optional<T> data) {
 			data.ifPresent(held -> NBT.tryEncode(field, stack, encoder, held));
 		}
-		
+
 		public static <T> void tryEncode(@Nonnull final String field, @Nonnull final CompoundTag tag, @Nonnull final Codec<T> encoder, @Nonnull final Optional<T> data) {
 			data.ifPresent(held -> NBT.tryEncode(field, tag, encoder, held));
 		}
-		
+
 		/**
 		 * Safely Stringifies the provided {@link CompoundTag}, even if it is {@code null}.
-		 * 
+		 *
 		 * @param tag - The {@link CompoundTag} to Stringifiy
 		 * @return A {@link String} representation of the provided {@link CompoundTag} reference.
 		 */
 		public static String asString(@Nullable CompoundTag tag) {
 			return Objects.isNull(tag) ? String.valueOf(tag) : tag.getAsString();
 		}
-		
+
 		/* Accessor interface implementations */
-		
+
 		@FunctionalInterface
 		public static interface INBTReader<T> {
-			
+
 			public T readFrom(final @Nonnull CompoundTag source, final @Nonnull String key);
-			
+
 		}
-		
+
 		@FunctionalInterface
 		public static interface INBTWriter<T> {
-			
+
 			public void writeTo(final @Nonnull CompoundTag destination, final @Nonnull String field, T value);
-			
+
 		}
-		
-		public static interface INBTAccessor<T> extends INBTReader<T>, INBTWriter<T> { }
-		
+
+		public static interface INBTAccessor<T> extends INBTReader<T>, INBTWriter<T> {}
+
 		/* Internal Methods */
 		
+		protected static <T> INBTReader<T> makeStringReader(Function<? super String, T> mapper) {
+			return (source, key) -> mapper.apply(source.getString(key));
+		}
+		
+		protected static <T> INBTWriter<T> makeStringWriter(Function<T, String> mapper) {
+			return (destination, key, value) -> destination.putString(key, mapper.apply(value));
+		}
+
 		protected static <T> void tryWrite(Codec<T> encoder, T data, Consumer<? super Tag> action) {
 			encoder.encodeStart(NbtOps.INSTANCE, data).result().ifPresent(action);
 		}
 		
+		protected static <T> Optional<T> tryReadString(final String key, @Nullable CompoundTag source, INBTReader<T> reader) {
+			return NBT.tryReadUsing(key, source, CompoundTag.TAG_STRING, reader);
+		}
+
 		protected static <T> Optional<T> tryReadUsing(final String key, @Nullable CompoundTag source, int type, INBTReader<T> reader) {
 			return NBT.hasField(key, type, source) ? Optional.ofNullable(reader.readFrom(source, key)) : Optional.empty();
 		}
-		
+
 		protected static <T> void copyOptionalFieldUsing(final String sourceFieldName, final String destinationFieldName, @Nullable CompoundTag source, final Supplier<CompoundTag> optionalDestination, final int fieldType, final INBTReader<T> getter, final INBTWriter<T> setter) {
 			if (NBT.hasField(sourceFieldName, fieldType, source)) {
 				NBT.copyFieldUsing(sourceFieldName, destinationFieldName, source, optionalDestination, fieldType, getter, setter);
 			}
 		}
-		
+
 		protected static <T> void copyFieldUsing(final String sourceFieldName, final String destinationFieldName, @Nullable CompoundTag source, final Supplier<CompoundTag> optionalDestination, final int fieldType, final INBTReader<T> getter, final INBTWriter<T> setter) {
 			setter.writeTo(optionalDestination.get(), destinationFieldName, getter.readFrom(source, sourceFieldName));
 		}
-		
+
 	}
 
 	public static class Game {
@@ -816,94 +731,65 @@ public final class Utilities {
 		private Game() {}
 		
 		/**
-		 * Utility method to get the {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return {@code null}.
+		 * Attempts to get the {@link ResourceLocation} id from the provided {@link Holder}, returning {@link Optional#empty()} if the {@link Holder} is
+		 * not bound.
 		 * <p>
-		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link IForgeRegistry}. This may still fail under certain circumstances.
+		 * If the provided {@link Holder} is {@code null}, will return {@link Optional#empty()}.
 		 * 
-		 * @param <T> The {@link IForgeRegistryEntry} type
-		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
-		 * @param registry - The registry to use for a reverse lookup
-		 * @return The ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 * @param holder - The {@link Holder} to examine
+		 * @return The bound {@link ResourceKey}, or {@link Optional#empty()}.
 		 */
-		public static <T extends IForgeRegistryEntry<T>> @Nullable ResourceLocation getID(@Nullable final T instance, @Nonnull final IForgeRegistry<T> registry) {
-			return Game.getID(instance, registry, (reg, inst) -> reg.getKey(inst));
-		}
-
-		/**
-		 * Utility method to get an {@link Optional} potentially containing {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return an empty {@link Optional}.
-		 * <p>
-		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link IForgeRegistry}. This may still fail under certain circumstances.
-		 * 
-		 * @param <T> The {@link IForgeRegistryEntry} type
-		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
-		 * @param registry - The registry to use for a reverse lookup
-		 * @return An {@link Optional} containing the ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Optional<ResourceLocation> tryGetID(@Nonnull final T instance, @Nonnull final IForgeRegistry<T> registry) {
-			return Optional.ofNullable(Game.getID(instance, registry));
+		public static Optional<ResourceLocation> getID(@Nullable final Holder<?> holder) {
+			return Game.getKey(holder).map(ResourceKey::location);
 		}
 		
 		/**
-		 * Utility method to get the {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return {@code null}.
+		 * Attempts to get the {@link ResourceKey} id from the provided {@link Holder}, returning {@link Optional#empty()} if the {@link Holder} is
+		 * not bound.
 		 * <p>
-		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link Registry}. This may still fail.
+		 * If the provided {@link Holder} is {@code null}, will return {@link Optional#empty()}.
 		 * 
-		 * @param <T> The {@link IForgeRegistryEntry} type
-		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
-		 * @param registry - The registry to use for a reverse lookup
-		 * @return The ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
+		 * @param holder - The {@link Holder} to examine
+		 * @return The bound {@link ResourceKey}, or {@link Optional#empty()}.
 		 */
-		public static <T extends IForgeRegistryEntry<T>> @Nullable ResourceLocation getID(@Nullable final T instance, @Nonnull final Registry<T> registry) {
-			return Game.getID(instance, registry, (reg, inst) -> reg.getKey(inst));
+		public static <T> Optional<ResourceKey<T>> getKey(@Nullable final Holder<T> holder) {
+			return Objects.nonNull(holder) ? holder.unwrapKey() : Optional.empty();
 		}
 
 		/**
-		 * Utility method to get an {@link Optional} potentially containing {@link ResourceLocation} id of the provided {@link IForgeRegistryEntry} object. If the provided object is {@code null}, this method will return an empty {@link Optional}.
+		 * Returns whether the provided {@link LivingEntity} has the effect contained within the provided {@link Holder}.
 		 * <p>
-		 * If {@link IForgeRegistryEntry#getRegistryName()} is {@code null}, attempts a reverse-lookup using the provided {@link Registry}. This may still fail.
-		 * 
-		 * @param <T> The {@link IForgeRegistryEntry} type
-		 * @param instance - The instance to fetch the {@link ResourceLocation} id from
-		 * @param registry - The registry to use for a reverse lookup
-		 * @return An {@link Optional} containing the ID of the provided {@link IForgeRegistryEntry}, or {@code null} if no ID is defined.
-		 */
-		public static <T extends IForgeRegistryEntry<T>> Optional<ResourceLocation> tryGetID(@Nonnull final T instance, @Nonnull final Registry<T> registry) {
-			return Optional.ofNullable(Game.getID(instance, registry));
-		}
-		
-		/**
-		 * Returns whether the provided {@link LivingEntity} has the effect contained within the provided {@link RegistryObject}.
-		 * <p>
-		 * Returns {@code TRUE} if the provided {@link LivingEntity} is non-null, and the provided {@link RegistryObject} contains a valid reference, and
+		 * Returns {@code TRUE} if the provided {@link LivingEntity} is non-null, and the provided {@link Holder} contains a valid reference, and
 		 * if {@link LivingEntity#hasEffect(MobEffect)} returns {@code TRUE} for the contained effect.
 		 * <p>
-		 * Good for mod-provided effects since those tend to be held by {@link RegistryObject} anyways.
-		 * 
+		 * Good for mod-provided effects since those tend to be held by {@link Holder} anyways.
+		 *
 		 * @param entity - The {@link LivingEntity} to examine
-		 * @param reference - The {@link RegistryObject} holding the effect
-		 * @return {@code TRUE} if the {@link LivingEntity} has the effect held by the {@link RegistryObject}, and {@code FALSE} otherwise.
+		 * @param reference - The {@link Holder} holding the effect
+		 * @return {@code TRUE} if the {@link LivingEntity} has the effect held by the {@link Holder}, and {@code FALSE} otherwise.
 		 */
-		public static boolean entityHasEffect(@Nullable final LivingEntity entity, @Nonnull final RegistryObject<MobEffect> reference) {
-			return Objects.nonNull(entity) && reference.isPresent() && entity.hasEffect(reference.get());
+		public static boolean entityHasEffect(@Nullable final LivingEntity entity, @Nonnull final Holder<MobEffect> reference) {
+			return Objects.nonNull(entity) && reference.isBound() && entity.hasEffect(reference.value());
 		}
-		
+
 		/**
 		 * Returns the opposite of the provided input hand.
-		 * 
+		 *
 		 * @param in The examined hand
 		 * @return The opposite of the examined hand
 		 */
 		public static InteractionHand getOpposite(InteractionHand in) {
-			return switch(in) {
+			return switch (in) {
 				case OFF_HAND -> InteractionHand.MAIN_HAND;
 				default -> InteractionHand.OFF_HAND;
 			};
 		}
-		
+
 		/**
 		 * Returns the provided {@link BlockEntityTicker} if the provided {@link Level} is not client side and the discovered {@link BlockEntityType} is of the expected type.
 		 * <p>
 		 * Effectively combines a client-side check with the protected method {@link BaseEntityBlock#createTickerHelper()}.
+		 *
 		 * @param <T> The type of {@link BlockEntity}
 		 * @param world - The {@link Level} in which the {@link BlockEntity} resides
 		 * @param discovered - The discovered {@link BlockEntity}
@@ -913,15 +799,15 @@ public final class Utilities {
 		 */
 		@Nullable
 		@SuppressWarnings("unchecked") // Look, if Mojang can get away with it so can I.
-		public static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> getTicker(Level world, BlockEntityType<A> discovered, RegistryObject<BlockEntityType<?>> expected, BlockEntityTicker<? super E> ticker) {
-	        return (!world.isClientSide() && Objects.equals(discovered, expected.get())) ? (BlockEntityTicker<A>) ticker : null;
-	    }
-		
+		public static <E extends BlockEntity, A extends BlockEntity> BlockEntityTicker<A> getTicker(Level world, BlockEntityType<A> discovered, Holder<BlockEntityType<?>> expected, BlockEntityTicker<? super E> ticker) {
+			return (!world.isClientSide() && Objects.equals(discovered, expected.value())) ? (BlockEntityTicker<A>) ticker : null;
+		}
+
 		/**
 		 * Tries to rename the provided {@link BlockEntity} using the display name of the provided {@link Stack}.
 		 * <p>
 		 * Merely checks to see if the provided {@link BlockEntity} is {@link BaseContainerBlockEntity}, and uses the inbuilt mechanism for renaming.
-		 * 
+		 *
 		 * @param discovered - The {@link BlockEntity} to rename (may be null)
 		 * @param namedStack - The {@link ItemStack} whose display name should be used to rename the {@link BlockEntity}
 		 */
@@ -941,13 +827,13 @@ public final class Utilities {
 		public static boolean isBlockLoaded(LevelAccessor world, BlockPos position) {
 			return world.hasChunk(position.getX() >> 4, position.getZ() >> 4);
 		}
-		
+
 		/**
 		 * Performs rudimentary check of the provided {@link ItemStack} to see if it has inventory data attached.
 		 * <p>
 		 * Checks the {@link ItemStack} tag for a tag list named {@literal "Items"}, as this is the mechanism the base
 		 * game uses to attach inventories to {@link ItemStack}, such as for Shulker Boxes.
-		 * 
+		 *
 		 * @param stack - The {@link ItemStack} to examine.
 		 * @return Whether inventory data is attached to the provided {@link ItemStack}.
 		 */
@@ -974,66 +860,24 @@ public final class Utilities {
 		 * @throws ResourceLocationException - If the input {@link String} cannot validly be converted into a {@link ResourceLocation} for registry lookup.
 		 */
 		public static @Nullable Item tryParseItem(String input) throws ResourceLocationException {
-			return ForgeRegistries.ITEMS.getValue(new ResourceLocation(input.trim()));
+			return BuiltInRegistries.ITEM.get(new ResourceLocation(input.trim()));
 		}
 
-		/**
-		 * Attempts to parse the received {@link String} into an {@link ItemStack} by the following means:
-		 * <li>The input {@link String} is split by whitespace into an array.</li>
-		 * <li>The first element of the result is attempted to be parsed as an {@link Item} using {@link Game#tryParseItem(String)}.</li>
-		 * <li>The second element of the result (if any) is attempted to be parsed as a {@link CompoundTag} from JSON format.</li>
-		 * <li>The {@link ItemStack} of the detected {@link Item}, with any parsed {@link CompoundTag} applied, is returned.</li>
-		 *
-		 * @param input - The input {@link String}, ideally parseable as a {@link ResourceLocation} followed by whitespace and then a JSON-format {@link CompoundTag}.
-		 * @return An {@link ItemStack} constructed from a {@link Item} registry lookup with any applicable {@link CompoundTag} applied.
-		 * @throws ResourceLocationException - If the input {@link String} cannot validly be converted into a {@link ResourceLocation} for registry lookup.
-		 * @throws CommandSyntaxException - If the additional parameters cannot be parsed as a {@link CompoundTag}.
-		 */
-		public static @Nonnull ItemStack tryParseItemStack(String input) throws ResourceLocationException {
-			String[] elements = Strings.splitByWhitespace(input);
-			if (elements.length > 0) {
-				Item discovered = Game.tryParseItem(elements[0]);
-				if (Objects.nonNull(discovered)) {
-					ItemStack stack = new ItemStack(discovered);
-					if (elements.length > 1) {
-						stack.setTag(CraftingHelper.getNBT(GsonHelper.parse(elements[1])));
-					}
-					return stack;
-				}
-			}
-			return ItemStack.EMPTY;
-		}
-
-		/**
-		 * Creates a new {@link CreativeModeTab} from the provided name and {@link Supplier}.
-		 *
-		 * @param name - The name for this {@link CreativeModeTab}
-		 * @param icon - The {@link Supplier} from which an icon will be derived.
-		 * @return A suitable {@link CreativeModeTab} instance.
-		 */
-		public static CreativeModeTab createGroupFrom(String name, Supplier<Item> icon) {
-			return new CreativeModeTab(name) {
-
-				@Override
-				public ItemStack makeIcon() {
-					return new ItemStack(icon.get());
-				}
-
-			};
-		}
-		
 		/**
 		 * Returns the {@link Vec3i} component corresponding to the provided {@link Axis}.
-		 * 
+		 *
 		 * @param position - The vector to query
 		 * @param axis - The axis to examine
 		 * @return The component of the provided {@link Vec3i} corresponding to the provided {@link Axis}.
 		 */
 		public static int componentFrom(final Vec3i position, final Axis axis) {
-			switch(axis) {
-				case X : return position.getX();
-				case Y : return position.getY();
-				case Z : return position.getZ();
+			switch (axis) {
+				case X:
+					return position.getX();
+				case Y:
+					return position.getY();
+				case Z:
+					return position.getZ();
 			}
 			return 0;
 		}
@@ -1119,24 +963,24 @@ public final class Utilities {
 		public static Stream<BlockPos> streamOrthogonalNeighbors(BlockPos origin) {
 			return Stream.of(origin.above(), origin.below(), origin.north(), origin.south(), origin.east(), origin.west());
 		}
-		
+
 		/**
 		 * Returns a {@link Stream} of all horizontal neighbors of the passed {@link BlockPos}.
 		 * <p>
 		 * Iteration order is NORTH, EAST, SOUTH, WEST.
-		 * 
+		 *
 		 * @param position - The origin {@link BlockPos}
 		 * @return All orthogonal neighbors of the origin.
 		 */
 		public static Stream<BlockPos> streamHorizontalNeighbors(BlockPos position) {
 			return Stream.of(position.north(), position.east(), position.south(), position.west());
 		}
-		
+
 		/**
 		 * Returns a {@link Stream} of all horizontal neighbors of the passed {@link BlockPos}.
 		 * <p>
 		 * Iteration order is NORTH, EAST, SOUTH, WEST.
-		 * 
+		 *
 		 * @param position - The origin {@link BlockPos}
 		 * @return All orthogonal neighbors of the origin.
 		 */
@@ -1324,14 +1168,6 @@ public final class Utilities {
 		protected static double getOffset(Random RNG, double spread) {
 			return spread - (RNG.nextDouble() * 2.0D * spread);
 		}
-		
-		protected static <T extends IForgeRegistryEntry<T>, R> ResourceLocation getID(final T instance, R registry, BiFunction<R, T, ResourceLocation> lookupMethod) {
-			if (Objects.isNull(instance)) {
-				return null;
-			}
-			final ResourceLocation heldName = instance.getRegistryName();
-			return Objects.nonNull(heldName) ? heldName : lookupMethod.apply(registry, instance);
-		}
 
 	}
 
@@ -1351,48 +1187,48 @@ public final class Utilities {
 			Strings.concatenateUsing(builder, Strings.DELIMITER_PATH, path);
 			return new ResourceLocation(domain, builder.toString());
 		}
-		
+
 		/**
 		 * Convenience method to create a Forge-domain "ingot" tag.
 		 * <p>
 		 * The resulting tag will be in {@code data.forge.tags.items.ingot}.
-		 * 
+		 *
 		 * @param type - The type of ingot
 		 * @return A suitable {@link TagKey}.
 		 */
 		public static TagKey<Item> createIngotTag(String type) {
 			return Tags.forgeItemTag("ingot", type);
 		}
-		
+
 		/**
 		 * Convenience method to create a Forge-domain "nugget" tag.
 		 * <p>
 		 * The resulting tag will be in {@code data.forge.tags.items.nugget}.
-		 * 
+		 *
 		 * @param type - The type of ingot
 		 * @return A suitable {@link TagKey}.
 		 */
 		public static TagKey<Item> createNuggetTag(String type) {
 			return Tags.forgeItemTag("nugget", type);
 		}
-		
+
 		/**
 		 * Convenience method to create a Forge-domain "storage_blocks" tag.
 		 * <p>
 		 * The resulting tag will be in {@code data.forge.tags.items.block}.
-		 * 
+		 *
 		 * @param type - The type of ingot
 		 * @return A suitable {@link TagKey}.
 		 */
 		public static TagKey<Item> createBlockTag(String type) {
 			return Tags.forgeItemTag("storage_blocks", type);
 		}
-		
+
 		/**
 		 * Convenience method to create a Forge-domain "ore" tag.
 		 * <p>
 		 * The resulting tag will be in {@code data.forge.tags.items.ore}.
-		 * 
+		 *
 		 * @param type - The type of ingot
 		 * @return A suitable {@link TagKey}.
 		 */
@@ -1452,7 +1288,7 @@ public final class Utilities {
 		 * @see {@link ItemTags#makeWrapperTag(String)}, {@link BlockTags#makeWrapperTag(String)}
 		 * @return
 		 */
-		public static <T extends IForgeRegistryEntry<T>> TagKey<T> createTag(Function<ResourceLocation, TagKey<T>> transformer, String domain, String... path) {
+		public static <T> TagKey<T> createTag(Function<ResourceLocation, TagKey<T>> transformer, String domain, String... path) {
 			return transformer.apply(Tags.createName(domain, path));
 		}
 
@@ -1661,7 +1497,7 @@ public final class Utilities {
 		 * Appends the passed {@link String} varargs array to the passed {@link StringBuilder}, with the passed delimiter placed betwixt each entry.
 		 * <p>
 		 * Convenience method which calls {@link #concatenate(String, String...)} with a new {@link StringBuilder}.
-		 * 
+		 *
 		 * @param delimiter - The String to place between each String in {@code elements}
 		 * @return The {@link StringBuilder} provided.
 		 */
@@ -1703,29 +1539,29 @@ public final class Utilities {
 			}
 			return builder;
 		}
-		
+
 		/**
 		 * Concatentates the passed {@link String}s with {@link #DELIMITER_TYPE} betwixt and {@value #TOOLTIP} as the first element.
-		 * 
+		 *
 		 * @param elements - The {@link String}s to concatenate
 		 * @return A suitably-concatenated {@link String}.
 		 */
-		public static String tooltip(String ... elements) {
+		public static String tooltip(String... elements) {
 			return Strings.concatenateUsing(Strings.createPrependedBuilder(TOOLTIP, DELIMITER_TYPE), DELIMITER_TYPE, elements).toString();
 		}
 
 		/**
 		 * Concatentates the passed {@link String}s with {@link #DELIMITER_TYPE} betwixt and {@value #TOOLTIP} as the first element.
-		 * 
+		 *
 		 * @param elements - The {@link String}s to concatenate
 		 * @return A suitably-concatenated {@link String}.
 		 */
 		public static String tooltip(Iterable<String> elements) {
 			return Strings.concatenateUsing(Strings.createPrependedBuilder(TOOLTIP, DELIMITER_TYPE), DELIMITER_TYPE, elements).toString();
 		}
-		
-		/* Internal Methods */	
-		
+
+		/* Internal Methods */
+
 		protected static StringBuilder createPrependedBuilder(String starter, String delimiter) {
 			return new StringBuilder().append(starter).append(delimiter);
 		}
@@ -1760,17 +1596,17 @@ public final class Utilities {
 		public static boolean openUIFor(Player player, LevelAccessor world, BlockPos position) {
 			final BlockEntity discovered = world.getBlockEntity(position);
 			if ((discovered instanceof MenuProvider provider) && (player instanceof ServerPlayer serverPlayer)) {
-				NetworkHooks.openGui(serverPlayer, provider, position);
+				NetworkHooks.openScreen(serverPlayer, provider, position);
 				return true;
 			}
 			return false;
 		}
-		
+
 		/**
 		 * Helper method that can be used as a stand-in for {@link Block#onBlockActivated(BlockState, Level, BlockPos, Player, net.minecraft.util.Hand, net.minecraft.util.math.BlockRayTraceResult)}.
 		 * <p>
 		 * If the provided {@link Level} is not client-side, calls {@link #openUIFor(Player, Level, BlockPos)}, returning {@link InteractionResult#SUCCESS} for a successful UI opening and {@link InteractionResult#CONSUME} for failure.
-		 * 
+		 *
 		 * @see #openUIFor(Player, Level, BlockPos)
 		 * @param player - The player opening the UI
 		 * @param world - The {@link Level} containing the {@link BlockEntity}
