@@ -5,6 +5,8 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import paragon.minecraft.library.client.ui.elements.PlacementMethods.IPlacementMethod;
+
 public interface IPlaceableGuiElement extends IDynamicGuiElement {
 
 	public Optional<IPlacementMethod> getPlacementMethod();
