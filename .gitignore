@@ -31,3 +31,4 @@ forge*changelog.txt
 
 # Generated Files
 generated/
+*.cache
