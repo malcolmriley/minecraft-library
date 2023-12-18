@@ -127,9 +127,9 @@ public abstract class ContentProvider<T, D extends DeferredRegister<T>> implemen
 		
 	}
 	
-	public static class MenuProvider extends ContentProvider<MenuType<?>, DeferredRegister<MenuType<?>>> {
+	public static class MenuTypeProvider extends ContentProvider<MenuType<?>, DeferredRegister<MenuType<?>>> {
 
-		public MenuProvider(final String modID) {
+		public MenuTypeProvider(final String modID) {
 			super(DeferredRegister.create(Registries.MENU, modID));
 		}
 		
