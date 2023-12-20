@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Random;
 import java.util.Set;
 import java.util.Stack;
@@ -639,12 +640,30 @@ public final class Utilities {
 			return NBT.tryReadString(field, tag, NBT.GET_RESOURCE);
 		}
 		
+		public static OptionalLong tryGetLong(final String field, @Nullable final CompoundTag tag) {
+			return NBT.hasField(field, CompoundTag.TAG_LONG, tag) ? OptionalLong.of(tag.getLong(field)) : OptionalLong.empty();
+		}
+		
 		public static Optional<Component> tryGetComponent(final String field, @Nullable final CompoundTag tag) {
 			return NBT.tryReadString(field, tag, NBT.GET_COMPONENT);
 		}
 		
 		public static Optional<CompoundTag> tryGetCompound(final String field, @Nullable final CompoundTag tag) {
 			return NBT.tryReadUsing(field, tag, CompoundTag.TAG_COMPOUND, NBT.GET_TAG);
+		}
+		
+		public static void tryPutLong(@Nullable final CompoundTag tag, final String field, OptionalLong value) {
+			if (Objects.nonNull(tag) && value.isPresent()) {
+				tag.putLong(field, value.getAsLong());
+			}
+		}
+		
+		public static void tryPutComponent(@Nullable final CompoundTag tag, final String field, Optional<Component> component) {
+			NBT.tryPut(tag, field, component, NBT.PUT_COMPONENT);
+		}
+		
+		public static void tryPutResource(@Nullable final CompoundTag tag, final String field, Optional<ResourceLocation> resource) {
+			NBT.tryPut(tag, field, resource, NBT.PUT_RESOURCE);
 		}
 
 		public static <T> Optional<T> tryDecode(final String field, @Nullable final CompoundTag tag, Codec<T> decoder, Consumer<String> onError) {
@@ -707,6 +726,12 @@ public final class Utilities {
 
 		protected static <T> void tryWrite(Codec<T> encoder, T data, Consumer<? super Tag> action) {
 			encoder.encodeStart(NbtOps.INSTANCE, data).result().ifPresent(action);
+		}
+		
+		protected static <T> void tryPut(@Nullable CompoundTag destination, final String key, Optional<T> holder, INBTWriter<T> writer) {
+			if (Objects.nonNull(destination) && holder.isPresent()) {
+				writer.writeTo(destination, key, holder.get());
+			}
 		}
 		
 		protected static <T> Optional<T> tryReadString(final String key, @Nullable CompoundTag source, INBTReader<T> reader) {
