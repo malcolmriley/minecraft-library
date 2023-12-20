@@ -14,7 +14,7 @@ repositories {
 }
 
 base {
-	archivesName = "${mod_jar}-${mod_version}-${mod_loader}-${minecraft_version}"
+	archivesName = "${mod_jar}-${mod_loader}-${minecraft_version}"
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -90,6 +90,7 @@ publishing {
 	publications {
 		register('mavenJava', MavenPublication) {
 			from components.java
+			artifactId = 'ParagonStash'
 		}
 	}
 	repositories {
