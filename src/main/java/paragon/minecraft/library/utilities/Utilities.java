@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
 import java.util.OptionalLong;
 import java.util.Random;
 import java.util.Set;
@@ -22,6 +23,7 @@ import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import com.machinezoo.noexception.optional.OptionalBoolean;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
@@ -644,6 +646,14 @@ public final class Utilities {
 			return NBT.hasField(field, CompoundTag.TAG_LONG, tag) ? OptionalLong.of(tag.getLong(field)) : OptionalLong.empty();
 		}
 		
+		public static OptionalDouble tryGetDouble(final String field, @Nullable final CompoundTag tag) {
+			return NBT.hasField(field, CompoundTag.TAG_DOUBLE, tag) ? OptionalDouble.of(tag.getDouble(field)) : OptionalDouble.empty();
+		}
+		
+		public static OptionalBoolean tryGetBoolean(final String field, @Nullable final CompoundTag tag) {
+			return NBT.hasField(field, CompoundTag.TAG_BYTE, tag) ? OptionalBoolean.of(tag.getBoolean(field)) : OptionalBoolean.empty();
+		}
+		
 		public static Optional<Component> tryGetComponent(final String field, @Nullable final CompoundTag tag) {
 			return NBT.tryReadString(field, tag, NBT.GET_COMPONENT);
 		}
@@ -655,6 +665,18 @@ public final class Utilities {
 		public static void tryPutLong(@Nullable final CompoundTag tag, final String field, OptionalLong value) {
 			if (Objects.nonNull(tag) && value.isPresent()) {
 				tag.putLong(field, value.getAsLong());
+			}
+		}
+		
+		public static void tryPutDouble(@Nullable final CompoundTag tag, final String field, OptionalDouble value) {
+			if (Objects.nonNull(tag) && value.isPresent()) {
+				tag.putDouble(field, value.getAsDouble());
+			}
+		}
+		
+		public static void tryPutBoolean(@Nullable final CompoundTag tag, final String field, OptionalBoolean value) {
+			if (Objects.nonNull(tag) && value.isPresent()) {
+				tag.putBoolean(field, value.getAsBoolean());
 			}
 		}
 		
