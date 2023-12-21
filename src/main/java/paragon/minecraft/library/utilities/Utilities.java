@@ -60,6 +60,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuConstructor;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.CreativeModeTab.DisplayItemsGenerator;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -74,6 +76,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.network.NetworkHooks;
+import paragon.minecraft.library.registration.ContentProvider.ItemProvider;
 
 /**
  * Container class for various static utility functions.
@@ -779,6 +782,60 @@ public final class Utilities {
 	public static class Game {
 
 		private Game() {}
+		
+		/**
+		 * Creates a {@link CreativeModeTab} from the provided parameters, populating the tab using the contents of the provided {@link ItemProvider}.
+		 * 
+		 * @param name - The {@link String} to be used as a translation key for the tab's title.
+		 * @param icon - A {@link Holder} containing an {@link Item} to be used for the tab's icon
+		 * @param provider - The {@link ItemProvider} holding the {@link Item}s to populate the tab with
+		 * @return A suitably-instantiated {@link CreativeModeTab}.
+		 */
+		public static CreativeModeTab createSimpleTab(final String name, final Holder<Item> icon, ItemProvider provider) {
+			return Game.createSimpleTab(name, icon, (params, output) -> provider.forEachAvailable(output::accept));
+		}
+		
+		/**
+		 * Creates a {@link Supplier} of a {@link CreativeModeTab} from the provided parameters, populating the tab using the contents of the provided {@link ItemProvider}.
+		 * 
+		 * @param name - The {@link String} to be used as a translation key for the tab's title.
+		 * @param icon - A {@link Holder} containing an {@link Item} to be used for the tab's icon
+		 * @param provider - The {@link ItemProvider} holding the {@link Item}s to populate the tab with
+		 * @return A {@link Supplier} that will instantiate the {@link CreativeModeTab} as above.
+		 */
+		public static Supplier<CreativeModeTab> createSimpleTabSupplier(final String name, final Holder<Item> icon, ItemProvider provider) {
+			return () -> Game.createSimpleTab(name, icon, provider);
+		}
+		
+		/**
+		 * Creates a simple {@link CreativeModeTab} based on the provided parameters.
+		 * 
+		 * @param name - The {@link String} to be used as a translation key for the tab's title.
+		 * @param icon - A {@link Holder} containing an {@link Item} to be used for the tab's icon
+		 * @param items - A generator for the tab's contents.
+		 * @return A suitably-instantiated {@link CreativeModeTab}.
+		 */
+		public static CreativeModeTab createSimpleTab(final String name, final Holder<Item> icon, final DisplayItemsGenerator items) {
+			return CreativeModeTab.builder()
+				.title(Component.translatable(name))
+				.icon(() -> new ItemStack(icon.value()))
+				.displayItems(items)
+				.build();
+		}
+		
+		/**
+		 * Creates a {@link Supplier} of a simple {@link CreativeModeTab} based on the provided parameters.
+		 * <p>
+		 * Simply wraps the result of {@link #createSimpleTab(String, Holder, DisplayItemsGenerator)} in a {@link Supplier}.
+		 * 
+		 * @param name - The {@link String} to be used as a translation key for the tab's title.
+		 * @param icon - A {@link Holder} containing an {@link Item} to be used for the tab's icon
+		 * @param items - A generator for the tab's contents.
+		 * @return A {@link Supplier} that will instantiate the {@link CreativeModeTab} as above.
+		 */
+		public static Supplier<CreativeModeTab> createSimpleTabSupplier(final String name, final Holder<Item> icon, final DisplayItemsGenerator items) {
+			return () -> Game.createSimpleTab(name, icon, items);
+		}
 		
 		/**
 		 * Attempts to get the {@link ResourceLocation} id from the provided {@link Holder}, returning {@link Optional#empty()} if the {@link Holder} is
